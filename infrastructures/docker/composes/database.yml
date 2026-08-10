@@ -1,0 +1,8 @@
+services:
+  database:
+    image: postgres:18.4-trixie
+    volumes:
+      - db_data:/var/lib/postresql 
+
+volumes:
+  db_data:

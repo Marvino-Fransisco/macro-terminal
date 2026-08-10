@@ -1,0 +1,8 @@
+services:
+  cache:
+    image: redis:8.8.1-trixie
+    volumes:
+      - cache_data:/data
+
+volumes:
+  cache_data:

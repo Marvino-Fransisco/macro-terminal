@@ -1,0 +1,27 @@
+name: dev
+
+include:
+  - ../composes/database.yml
+  - ../composes/cache.yml
+
+services:
+  database:
+    container_name: database
+    environment:
+      POSTGRES_DB: macro-terminal
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - network
+    ports:
+      - "5432:5432"
+
+  cache:
+    container_name: cache
+    networks:
+      - network
+    ports:
+      - "6379:6379"
+
+networks:
+  network:
