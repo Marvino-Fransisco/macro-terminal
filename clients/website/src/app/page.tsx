@@ -6,6 +6,7 @@ import { Textarea } from "../../lib/ui/components/text-area";
 import { NativeSelect } from "../../lib/ui/components/native-select";
 import { NativeOption } from "../../lib/ui/components/native-option";
 import { NativeOptionGroup } from "../../lib/ui/components/native-option-group";
+import { Checkbox } from "../../lib/ui/components/checkbox";
 
 export default function Home() {
   return (
@@ -75,6 +76,17 @@ export default function Home() {
               <NativeOption>Option 3</NativeOption>
             </NativeOptionGroup>
           </NativeSelect>
+        </ComponentCard>
+
+        <ComponentCard componentName="Checkbox">
+          <Label htmlFor="cb1" className="flex items-center gap-1.5 leading-none">
+            <Checkbox id="cb1" />
+            Checkbox 1
+          </Label>
+          <Label htmlFor="cb2" variant={"error"} className="flex items-center gap-1.5 leading-none">
+            <Checkbox id="cb2" variant={"error"} />
+            Checkbox 2
+          </Label>
         </ComponentCard>
 
       </main>
