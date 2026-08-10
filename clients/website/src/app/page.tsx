@@ -7,6 +7,8 @@ import { NativeSelect } from "../../lib/ui/components/native-select";
 import { NativeOption } from "../../lib/ui/components/native-option";
 import { NativeOptionGroup } from "../../lib/ui/components/native-option-group";
 import { Checkbox } from "../../lib/ui/components/checkbox";
+import { RadioItem } from "../../lib/ui/components/radio-item";
+import { RadioGroup } from "../../lib/ui/components/radio-group";
 
 export default function Home() {
   return (
@@ -88,6 +90,19 @@ export default function Home() {
             Checkbox 2
           </Label>
         </ComponentCard>
+
+        <ComponentCard componentName="Radio">
+          <RadioGroup name="test">
+            <Label htmlFor="rb1">
+              <RadioItem id="rb1" value="1" />
+              Radio button 1
+            </Label>
+            <Label htmlFor="rb2">
+              <RadioItem id="rb2" value="2" />
+              Radio button 2
+            </Label>
+          </RadioGroup>
+       </ComponentCard>
 
       </main>
     </div>
