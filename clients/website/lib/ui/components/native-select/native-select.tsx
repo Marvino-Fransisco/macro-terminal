@@ -1,18 +1,30 @@
+"use client";
+
 import { forwardRef } from "react";
 import { NativeSelectProps } from "./type";
 import { cn } from "../../util";
 import { nativeSelectVariants } from "./variants";
 import { ChevronDown } from "lucide-react";
+import { resolveFormFieldVariant, useFormField } from "../form-field";
 
 export const NativeSelect = forwardRef<HTMLSelectElement, NativeSelectProps>(
   ({ className, variant, size, ...props }, ref) => {
+    const formFieldContext = useFormField();
+    const state = formFieldContext?.state;
+    const resolvedVariant = variant ?? resolveFormFieldVariant(
+      state,
+      {
+        error: "error",
+      });
+
     return (
       <div className={cn(
-        nativeSelectVariants({ variant, size }),
+        nativeSelectVariants({ variant: resolvedVariant, size }),
         className
       )}>
         <select
           ref={ref}
+          aria-invalid={state === "error"}
           className={cn(
             "h-full w-full",
             "appearance-none",

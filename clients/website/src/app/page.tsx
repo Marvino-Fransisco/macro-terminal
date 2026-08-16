@@ -9,6 +9,7 @@ import { NativeOptionGroup } from "../../lib/ui/components/native-option-group";
 import { Checkbox } from "../../lib/ui/components/checkbox";
 import { RadioItem } from "../../lib/ui/components/radio-item";
 import { RadioGroup } from "../../lib/ui/components/radio-group";
+import { FormField } from "../../lib/ui/components/form-field";
 
 export default function Home() {
   return (
@@ -91,18 +92,48 @@ export default function Home() {
           </Label>
         </ComponentCard>
 
-        <ComponentCard componentName="Radio">
-          <RadioGroup name="test">
-            <Label htmlFor="rb1">
+        <RadioGroup name="test">
+          <ComponentCard componentName="Radio">
+            <Label htmlFor="rb1" className="flex items-center gap-1.5 leading-none">
               <RadioItem id="rb1" value="1" />
               Radio button 1
             </Label>
-            <Label htmlFor="rb2">
-              <RadioItem id="rb2" value="2" />
+            <Label variant={"error"} htmlFor="rb2" className="flex items-center gap-1.5 leading-none">
+              <RadioItem id="rb2" value="2" variant={"error"}/>
               Radio button 2
             </Label>
-          </RadioGroup>
-       </ComponentCard>
+          </ComponentCard>
+        </RadioGroup>
+
+        <form>
+          <ComponentCard componentName="Form Field" className="items-end">
+            <FormField>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email"/>
+            </FormField>
+            <FormField state="error">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password"/>
+            </FormField>
+            <FormField state="success">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" />
+            </FormField>
+
+            <FormField layout={"horizontal"}>
+              <Label htmlFor="email-h">Email</Label>
+              <Input id="email-h"/>
+            </FormField>
+            <FormField layout={"horizontal"} state="error">
+              <Label htmlFor="password-h">Password</Label>
+              <Input id="password-h"/>
+            </FormField>
+            <FormField layout={"horizontal"} state="success">
+              <Label htmlFor="username-h">Username</Label>
+              <Input id="username-h" />
+            </FormField>
+          </ComponentCard>
+        </form>
 
       </main>
     </div>

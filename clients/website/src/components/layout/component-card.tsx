@@ -1,20 +1,22 @@
-import { ReactNode } from "react";
+import { HTMLAttributes } from "react";
+import { cn } from "../../../lib/ui/util";
 
-interface ComponentCardProps {
+interface ComponentCardProps extends HTMLAttributes<HTMLDivElement> {
     componentName: string;
-    children: ReactNode;
 }
 
 export function ComponentCard({
-    componentName,
-    children
+  componentName,
+  children,
+  className,
+  ...props
 }: ComponentCardProps) {
     return (
         <div className="flex-col flex gap-1 p-4 border">
           <div>
-            {componentName} 
+            {componentName}
           </div>
-          <div className="flex gap-4">
+          <div className={cn("flex gap-4", className)} {...props}>
             {children}
           </div>
         </div>
