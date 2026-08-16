@@ -27,6 +27,11 @@ export const inputVariants = cva(
                     "focus-visible:border-destructive",
                     "focus-visible:ring-destructive",
                 ],
+                success: [
+                    "border-success",
+                    "focus-visible:border-success",
+                    "focus-visible:ring-success",
+                ],
             },
             size: {
                 sm: "h-8 px-2",

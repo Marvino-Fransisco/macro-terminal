@@ -26,7 +26,6 @@ export const checkboxVariants = cva(
 
     "focus-visible:outline-none",
     "focus-visible:ring-1",
-    "focus-visible:ring-ring",
 
     "disabled:cursor-not-allowed",
     "disabled:opacity-50",
@@ -34,10 +33,13 @@ export const checkboxVariants = cva(
   {
     variants: {
       variant: {
-        default: [],
+        default: [
+          "focus-visible:ring-ring",
+        ],
         error: [
           "border-destructive",
           "checked:border-destructive",
+          "focus-visible:ring-destructive"
         ],
       }
     },
