@@ -11,6 +11,7 @@ export const buttonVariants = cva(
         "focus-visible:ring-1",
         "focus-visible:ring-ring",
         "disabled:cursor-not-allowed",
+        "cursor-pointer"
     ],
     {
         variants:  {
@@ -18,7 +19,7 @@ export const buttonVariants = cva(
                 solid: [
                     "bg-primary",
                     "text-primary-foreground",
-                    "hover:bg-primary/90"  
+                    "hover:bg-primary/90"
                 ],
                 outline: [
                     "border border-input",
@@ -39,10 +40,10 @@ export const buttonVariants = cva(
                 ],
             },
             size: {
-                sm: "h-5 px-3.5",
-                md: "h-6 px-3.5",
-                lg: "h-7 px-3.5",
-                xl: "h-8 px-3.5",
+                sm: "h-6 px-3.5",
+                md: "h-7 px-3.5",
+                lg: "h-8 px-3.5",
+                xl: "h-9 px-3.5",
             }
         },
         defaultVariants: {

@@ -7,7 +7,7 @@ export const formFieldVariants = cva(
       layout: {
         vertical: ["flex-col gap-2"],
         horizontal: ["flex-row gap-4 items-center"],
-        none: [],
+        noLabel: [],
       },
     },
     defaultVariants: {
