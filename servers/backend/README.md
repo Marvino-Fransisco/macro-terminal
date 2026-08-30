@@ -6,66 +6,67 @@ This backend is a TypeScript modular monolith.
 
 The main architectural goals are:
 
-1. Keep business logic independent from Fastify.
+1. Keep business logic independent from Elysia.
 2. Keep modules independent from infrastructure technologies.
 3. Allow both the HTTP API and background workers to reuse the same application/domain logic.
-4. Keep external systems such as PostgreSQL, Redis, FRED, and news providers behind contracts.
+4. Keep external systems such as PostgreSQL behind contracts.
 5. Make dependencies point inward toward the business logic.
 
 The backend uses:
 
-- Node.js
+- Bun
 - TypeScript
-- Fastify
-- PostgreSQL
-- Redis
-- BullMQ
-- Docker
-- External macroeconomic/news providers
+- Elysia
+- PostgreSQL (Supabase)
+- Drizzle ORM
+- Zod
+- Argon2
 
 ---
 
 # Directory Structure
 
 ```text
-server/
-└── backend/
-    ├── bootstrap/
-    │   ├── api.ts
-    │   └── worker.ts
-    │
-    ├── config/
-    │   └── ...
-    │
-    ├── api/
-    │   └── http/
-    │       ├── controllers/
-    │       ├── routes/
-    │       ├── schemas/
-    │       └── plugins/
-    │
-    ├── infrastructure/
-    │   ├── database/
-    │   ├── providers/
-    │   │   ├── fred/
-    │   │   └── news/
-    │   ├── redis/
-    │   └── queue/
-    │
-    ├── modules/
-    │   ├── macro/
-    │   │   ├── domain/
-    │   │   ├── application/
-    │   │   └── ports/
-    │   │
-    │   └── news/
-    │       ├── domain/
-    │       ├── application/
-    │       └── ports/
-    │
-    └── worker/
-        ├── jobs/
-        └── processors/
+backend/
+├── bootstrap/
+│   ├── api.ts
+│   └── worker.ts
+│
+├── configs/
+│   └── env.ts
+│
+├── api/
+│   └── http/
+│
+├── infrastructure/
+│   ├── argon2-password-hasher.ts
+│   └── database/
+│       ├── connections/
+│       ├── migrations/
+│       ├── repositories/
+│       │   ├── authentication/
+│       │   └── user/
+│       ├── schemas/
+│       └── unit-of-work/
+│
+├── modules/
+│   ├── authentication/
+│   │   ├── domain/
+│   │   ├── application/
+│   │   └── index.ts
+│   │
+│   ├── user/
+│   │   ├── domain/
+│   │   ├── application/
+│   │   └── index.ts
+│   │
+│   └── shared/
+│       ├── domain/
+│       ├── application/
+│       ├── constants/
+│       └── index.ts
+│
+└── workers/
 ```
 
 ---
@@ -81,7 +82,7 @@ The most important rule is:
 Conceptually:
 
 ```text
-                    interfaces/http
+                    api/http
                          │
                          ▼
                   ┌──────────────┐
@@ -100,7 +101,7 @@ Conceptually:
                   infrastructure
 ```
 
-Fastify, PostgreSQL, Redis, FRED, and external news APIs are implementation details.
+Elysia and PostgreSQL are implementation details.
 
 The application should not depend directly on them.
 
@@ -110,24 +111,29 @@ The application should not depend directly on them.
 
 `modules/` contains the actual business capabilities of the application.
 
-For example:
+Current modules:
 
 ```text
 modules/
-├── macro/
-└── news/
+├── authentication/
+├── user/
+└── shared/
 ```
 
 Each module represents a business/domain boundary.
 
-A module should contain:
+A module contains:
 
 ```text
 module/
 ├── domain/
 ├── application/
-└── ports/
+└── index.ts
 ```
+
+`shared/` holds cross-module domain primitives (value objects, constants, unit-of-work port) reused by other modules.
+
+Ports for a module live inside `module/application/ports/`, not in a separate top-level `ports/` folder.
 
 ---
 
@@ -141,27 +147,24 @@ Examples:
 domain/
 ├── entities/
 ├── value-objects/
-└── rules/
+├── errors/
+└── types/
 ```
 
 The domain must not know about:
 
-* Fastify
+* Elysia
 * HTTP
 * PostgreSQL
-* Redis
-* BullMQ
-* FRED
-* external APIs
+* Drizzle
 
 Example:
 
 ```ts
-export class EconomicSeries {
+export class UserIdentity {
   constructor(
     readonly id: string,
-    readonly name: string,
-    readonly frequency: string,
+    readonly email: string,
   ) {}
 }
 ```
@@ -172,67 +175,76 @@ Domain code should represent the actual business problem, not technical implemen
 
 # 3. application/
 
-`application/` contains application use cases and services.
+`application/` contains application use cases, ports, and DTOs.
 
 Examples:
 
 ```text
 application/
-├── get-economic-series.ts
-├── sync-economic-series.ts
-└── calculate-growth-rate.ts
+├── use-cases/
+│   └── authentication.use-case.ts
+├── ports/
+│   ├── authentication.port.ts
+│   ├── password-hasher.port.ts
+│   └── user-credential-repository.port.ts
+├── dtos/
+│   ├── requests/
+│   └── responses/
+└── errors/
 ```
 
-The application layer coordinates domain logic and dependencies.
+The application layer coordinates domain logic and dependencies through ports.
 
 Example:
 
 ```ts
-export class GetEconomicSeries {
+export class AuthenticationUseCase {
   constructor(
-    private readonly provider: EconomicDataProvider,
+    private readonly credentialRepository: UserCredentialRepositoryPort,
+    private readonly passwordHasher: PasswordHasherPort,
   ) {}
 
-  async execute(seriesId: string) {
-    return this.provider.getSeries(seriesId);
+  async register(input: RegisterRequest) {
+    // ...
   }
 }
 ```
 
-The application layer does not know that `EconomicDataProvider` is implemented by FRED.
+The application layer does not know that `PasswordHasherPort` is implemented with Argon2.
 
 It only knows the contract.
 
 ---
 
-# 4. ports/
+# 4. ports (application/ports/)
 
-`ports/` contains contracts required by the module to communicate across its boundary.
+Ports are contracts a module needs to communicate across its boundary. They live under each module's `application/ports/` directory.
 
 Example:
 
 ```text
-modules/macro/ports/
-└── economic-data-provider.ts
+modules/authentication/application/ports/
+├── authentication.port.ts
+├── password-hasher.port.ts
+└── user-credential-repository.port.ts
 ```
 
 ```ts
-export interface EconomicDataProvider {
-  getSeries(seriesId: string): Promise<EconomicSeries>;
+export interface PasswordHasherPort {
+  hash(plain: string): Promise<string>;
+  verify(plain: string, hash: string): Promise<boolean>;
 }
 ```
 
 The module says:
 
-> "I need something capable of providing economic data."
+> "I need something capable of hashing passwords."
 
 It does not say:
 
-> "I need FRED."
+> "I need Argon2."
 
-That distinction is important.
-
-The concrete implementation belongs outside the module.
+The concrete implementation belongs outside the module, in `infrastructure/`.
 
 ---
 
@@ -240,31 +252,35 @@ The concrete implementation belongs outside the module.
 
 `infrastructure/` contains implementations that interact with external technologies.
 
-Examples:
+Current structure:
 
 ```text
 infrastructure/
-├── database/
-├── providers/
-│   ├── fred/
-│   └── news/
-├── redis/
-└── queue/
+├── argon2-password-hasher.ts
+└── database/
+    ├── connections/
+    │   └── supabase.connection.ts
+    ├── migrations/
+    ├── repositories/
+    │   ├── authentication/
+    │   │   ├── errors/
+    │   │   ├── mappers/
+    │   │   └── user-credential.drizzle.ts
+    │   └── user/
+    │       ├── errors/
+    │       ├── mappers/
+    │       └── user-repository.drizzle.ts
+    ├── schemas/
+    └── unit-of-work/
+        └── unit-of-work.drizzle.ts
 ```
 
 For example:
 
-```text
-infrastructure/providers/fred/
-└── fred-economic-data-provider.ts
-```
-
 ```ts
-export class FredEconomicDataProvider
-  implements EconomicDataProvider
-{
-  async getSeries(seriesId: string) {
-    // Call FRED API
+export class Argon2PasswordHasher implements PasswordHasherPort {
+  async hash(plain: string) {
+    // Call argon2
   }
 }
 ```
@@ -272,71 +288,61 @@ export class FredEconomicDataProvider
 The dependency relationship is:
 
 ```text
-modules/macro/ports/
+modules/authentication/application/ports/
         │
         │ defines contract
         ▼
-EconomicDataProvider
+PasswordHasherPort
         ▲
         │ implements
         │
-infrastructure/providers/fred/
+infrastructure/argon2-password-hasher.ts
 ```
 
 The module owns the contract.
 
 Infrastructure owns the implementation.
 
+Database access uses Drizzle ORM against a Supabase-hosted PostgreSQL instance, with repositories per module (`user-repository.drizzle.ts`, `user-credential.drizzle.ts`) and a shared unit-of-work implementation.
+
 ---
 
-# 6. interfaces/http/
+# 6. api/http/
 
-`interfaces/http/` contains the HTTP adapter.
+`api/http/` contains the HTTP adapter.
 
-This is where Fastify belongs.
-
-```text
-interfaces/http/
-├── controllers/
-├── routes/
-├── schemas/
-└── plugins/
-```
+This is where Elysia belongs.
 
 The HTTP layer translates HTTP requests into application operations.
 
 Example:
 
 ```ts
-export async function getEconomicSeries(
-  request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  const result = await getEconomicSeries.execute(
-    request.params.seriesId,
-  );
-
-  return reply.send(result);
-}
+export const authRoutes = new Elysia({ prefix: "/auth" }).post(
+  "/register",
+  async ({ body }) => {
+    return authenticationUseCase.register(body);
+  },
+);
 ```
 
-The controller knows about Fastify.
+The route handler knows about Elysia.
 
 The application service does not.
 
 Therefore:
 
 ```text
-Fastify
+Elysia
    ↓
-Controller
+Route handler
    ↓
 Application
    ↓
 Domain
 ```
 
-Fastify should never leak into the domain/application logic.
+Elysia should never leak into the domain/application logic.
 
 ---
 
@@ -345,8 +351,6 @@ Fastify should never leak into the domain/application logic.
 `bootstrap/` is responsible for starting and composing the application.
 
 It connects concrete implementations to abstractions.
-
-Example:
 
 ```text
 bootstrap/
@@ -357,27 +361,25 @@ bootstrap/
 Conceptually:
 
 ```ts
-const provider = new FredEconomicDataProvider();
+const passwordHasher = new Argon2PasswordHasher();
+const credentialRepository = new UserCredentialRepositoryDrizzle();
 
-const getEconomicSeries = new GetEconomicSeries(
-  provider,
+const authenticationUseCase = new AuthenticationUseCase(
+  credentialRepository,
+  passwordHasher,
 );
 
-const app = createHttpApplication({
-  getEconomicSeries,
-});
+const app = new Elysia().use(authRoutes);
 
-await app.listen();
+app.listen(3000);
 ```
 
 `bootstrap/` is where dependency wiring happens.
 
 It is allowed to know about:
 
-* Fastify
-* PostgreSQL
-* Redis
-* FRED implementations
+* Elysia
+* PostgreSQL / Drizzle
 * application services
 * infrastructure implementations
 
@@ -385,66 +387,34 @@ This is intentionally one of the outermost layers.
 
 ---
 
-# 8. worker/
+# 8. workers/
 
-The backend has two major entry points:
+The backend has two entry points:
 
 ```text
 API
 Worker
 ```
 
-The worker handles background processing.
+The worker handles background processing and should reuse the same application/domain logic used by the API.
 
-For example:
-
-```text
-worker/
-├── jobs/
-└── processors/
-```
-
-A job might be:
-
-```text
-fetch-macro-data
-```
-
-The worker should reuse the same application/domain logic used by the API.
-
-Example:
-
-```text
-BullMQ Job
-    ↓
-Worker processor
-    ↓
-Application use case
-    ↓
-Domain
-    ↓
-Port
-    ↓
-Infrastructure implementation
-```
-
-The worker does not need Fastify.
+The worker does not need Elysia.
 
 ---
 
 # API Flow
 
-When a user requests macroeconomic data:
+When a client hits an authentication endpoint:
 
 ```text
-Browser
+Client
    │
    │ HTTP
    ▼
-Fastify
+Elysia
    │
    ▼
-HTTP Controller
+Route handler
    │
    ▼
 Application Use Case
@@ -462,68 +432,18 @@ PostgreSQL
 For example:
 
 ```text
-GET /api/macro/GDP
+POST /auth/register
         ↓
-getEconomicSeriesController
+authRoutes handler
         ↓
-GetEconomicSeries.execute()
+AuthenticationUseCase.register()
         ↓
-EconomicDataRepository
+UserCredentialRepositoryPort
         ↓
-PostgresEconomicDataRepository
+UserCredentialDrizzle
         ↓
-PostgreSQL
+PostgreSQL (Supabase)
 ```
-
----
-
-# Worker Flow
-
-Background ingestion works differently.
-
-```text
-Scheduler
-    ↓
-BullMQ
-    ↓
-Worker
-    ↓
-Application Use Case
-    ↓
-Port
-    ↓
-Provider
-    ↓
-FRED / News API
-    ↓
-PostgreSQL
-```
-
-Example:
-
-```text
-Scheduled job
-    ↓
-fetch-economic-series
-    ↓
-Worker processor
-    ↓
-SyncEconomicSeries
-    ↓
-EconomicDataProvider
-    ↓
-FredEconomicDataProvider
-    ↓
-FRED
-    ↓
-EconomicSeriesRepository
-    ↓
-PostgreSQL
-```
-
-The important point is that the worker does not contain the business logic itself.
-
-It invokes application logic.
 
 ---
 
@@ -534,7 +454,7 @@ The API and worker are different entry points into the same application.
 ```text
                   ┌───────────────┐
                   │     API       │
-                  │   Fastify     │
+                  │   Elysia      │
                   └───────┬───────┘
                           │
                           ▼
@@ -550,7 +470,6 @@ The API and worker are different entry points into the same application.
                           │
                   ┌───────┴───────┐
                   │    Worker     │
-                  │   BullMQ      │
                   └───────────────┘
 ```
 
@@ -562,41 +481,16 @@ This prevents duplicated business logic.
 
 Not every piece of code needs a port.
 
-If something is entirely internal to the module:
+If something is entirely internal to the module (e.g. a value object rule), no port is needed. It is simply internal application/domain logic.
 
-```ts
-export class CalculateGrowthRate {
-  execute(previous: number, current: number) {
-    return ((current - previous) / previous) * 100;
-  }
-}
-```
-
-No port is needed.
-
-It is simply internal application/domain logic.
-
-A port is needed when the module depends on something outside itself.
-
-For example:
-
-```ts
-export interface EconomicDataProvider {
-  getSeries(seriesId: string): Promise<EconomicSeries>;
-}
-```
-
-Because the actual provider could be:
+A port is needed when the module depends on something outside itself, such as:
 
 ```text
-FRED
-Another provider
-Mock
-Cached provider
-Database
+Password hashing (Argon2)
+Credential persistence (PostgreSQL)
 ```
 
-The module should not care which one.
+The module should not care which concrete technology fulfills the port.
 
 ---
 
@@ -605,7 +499,7 @@ The module should not care which one.
 ## Allowed
 
 ```text
-interfaces
+api/http
     ↓
 application
     ↓
@@ -632,22 +526,17 @@ everything required to compose the application
 
 ## Forbidden
 
-The following should not happen:
-
 ```text
-domain → Fastify
+domain → Elysia
 domain → PostgreSQL
-domain → Redis
-domain → FRED
-domain → BullMQ
+domain → Drizzle
 ```
 
 Also avoid:
 
 ```text
-application → Fastify
-application → PostgreSQL
-application → FRED SDK
+application → Elysia
+application → PostgreSQL driver
 ```
 
 Instead:
@@ -661,81 +550,62 @@ infrastructure → implements Port
 
 # Example Complete Flow
 
-Suppose the application needs to synchronize GDP data.
-
-The module defines:
+The authentication module defines:
 
 ```text
-modules/macro/
+modules/authentication/
 ├── domain/
-│   └── economic-series.ts
+│   └── entities/
+│       ├── user-credential.entity.ts
+│       └── user-identity.entity.ts
 │
-├── application/
-│   └── sync-economic-series.ts
-│
-└── ports/
-    ├── economic-data-provider.ts
-    └── economic-series-repository.ts
+└── application/
+    ├── use-cases/
+    │   └── authentication.use-case.ts
+    └── ports/
+        ├── authentication.port.ts
+        ├── password-hasher.port.ts
+        └── user-credential-repository.port.ts
 ```
 
 The infrastructure implements:
 
 ```text
 infrastructure/
-├── providers/
-│   └── fred/
-│       └── fred-economic-data-provider.ts
-│
+├── argon2-password-hasher.ts
 └── database/
-    └── postgres/
-        └── economic-series-repository.ts
+    └── repositories/
+        └── authentication/
+            └── user-credential.drizzle.ts
 ```
 
-The worker invokes:
+The API invokes:
 
 ```text
-worker
+Elysia
    ↓
-SyncEconomicSeries
+AuthenticationUseCase
    ↓
-EconomicDataProvider
+UserCredentialRepositoryPort
    ↓
-FredEconomicDataProvider
-   ↓
-FRED
-   ↓
-EconomicSeriesRepository
+UserCredentialDrizzle
    ↓
 PostgreSQL
 ```
-
-The API can later invoke:
-
-```text
-Fastify
-   ↓
-GetEconomicSeries
-   ↓
-EconomicSeriesRepository
-   ↓
-PostgreSQL
-```
-
-Both use the same module.
 
 ---
 
-# Why Fastify Is Not Inside modules/
+# Why Elysia Is Not Inside modules/
 
-Fastify is an implementation detail of the HTTP interface.
+Elysia is an implementation detail of the HTTP interface.
 
 Therefore:
 
 ```text
-interfaces/http/
+api/http/
 ```
 
-knows Fastify.
+knows Elysia.
 
 But:
 
@@ -748,9 +618,8 @@ does not.
 This allows the same application logic to be used by:
 
 ```text
-Fastify
+Elysia
 Worker
-CLI
 Tests
 Future transport
 ```
@@ -770,7 +639,7 @@ For example:
 ```text
 Module:
 
-EconomicDataProvider
+PasswordHasherPort
         ↑
         │ contract
 ```
@@ -778,22 +647,20 @@ EconomicDataProvider
 Implementation:
 
 ```text
-FRED
+Argon2
         ↓
-FredEconomicDataProvider
+Argon2PasswordHasher
         ↓
-EconomicDataProvider
+PasswordHasherPort
 ```
 
-This keeps external technology replaceable.
-
-If FRED is replaced by another provider, the module should not need to know.
+This keeps external technology replaceable. If Argon2 is replaced by another hashing library, the module should not need to know.
 
 ---
 
 # Mental Model
 
-Remember these five questions:
+Remember these questions:
 
 ### `domain/`
 
@@ -803,7 +670,7 @@ Remember these five questions:
 
 > What does the application need to do?
 
-### `ports/`
+### `application/ports/`
 
 > What does this module need from the outside world?
 
@@ -811,7 +678,7 @@ Remember these five questions:
 
 > How do we technically provide those things?
 
-### `interfaces/`
+### `api/http/`
 
 > How does the outside world communicate with our application?
 
@@ -826,48 +693,43 @@ And:
 # Final Architecture
 
 ```text
-server/
-└── backend/
-    │
-    ├── bootstrap/
-    │   ├── api.ts
-    │   └── worker.ts
-    │
-    ├── config/
-    │
-    ├── interfaces/
-    │   └── http/
-    │       ├── controllers/
-    │       ├── routes/
-    │       ├── schemas/
-    │       └── plugins/
-    │
-    ├── modules/
-    │   ├── macro/
-    │   │   ├── domain/
-    │   │   ├── application/
-    │   │   └── ports/
-    │   │
-    │   └── news/
-    │       ├── domain/
-    │       ├── application/
-    │       └── ports/
-    │
-    ├── infrastructure/
-    │   ├── database/
-    │   ├── providers/
-    │   │   ├── fred/
-    │   │   └── news/
-    │   ├── redis/
-    │   └── queue/
-    │
-    └── worker/
-        ├── jobs/
-        └── processors/
+backend/
+├── bootstrap/
+│   ├── api.ts
+│   └── worker.ts
+│
+├── configs/
+│   └── env.ts
+│
+├── api/
+│   └── http/
+│
+├── modules/
+│   ├── authentication/
+│   │   ├── domain/
+│   │   └── application/
+│   │
+│   ├── user/
+│   │   ├── domain/
+│   │   └── application/
+│   │
+│   └── shared/
+│       ├── domain/
+│       ├── application/
+│       └── constants/
+│
+├── infrastructure/
+│   ├── argon2-password-hasher.ts
+│   └── database/
+│       ├── connections/
+│       ├── migrations/
+│       ├── repositories/
+│       ├── schemas/
+│       └── unit-of-work/
+│
+└── workers/
 ```
 
 ## Core Rule
 
-> **Modules contain business logic. Ports define module boundaries. Infrastructure implements those boundaries. Interfaces expose the application. Bootstrap wires everything together. Worker and API are entry points that reuse the same application logic.**
-
-```
+> **Modules contain business logic. Ports (inside each module's `application/ports/`) define module boundaries. Infrastructure implements those boundaries. `api/http` exposes the application via Elysia. Bootstrap wires everything together. Worker and API are entry points that reuse the same application logic.**
