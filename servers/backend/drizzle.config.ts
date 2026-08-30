@@ -3,7 +3,7 @@ import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
   out: './infrastructure/database/migrations',
-  schema: './infrastructure/schemas/*',
+  schema: './infrastructure/database/schemas/*',
   dialect: 'postgresql',
   migrations: {
     table: "migration-histories",
