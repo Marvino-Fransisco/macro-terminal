@@ -7,3 +7,4 @@ export const SUPPORTED_CURRENCIES = [
 ] as const;
 
 export const DEFAULT_CURRENCY = "USD";
+export const CURRENCY_LENGTH = 3;

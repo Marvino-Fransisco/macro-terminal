@@ -1,21 +1,22 @@
-import { InvalidLocaleError } from "../errors/local.error";
+import { InvalidLocaleError, LocaleTooLongError } from "../errors/local.error";
+import { MAX_LOCALE_LENGTH } from "../../constants";
 
 export type Locale = string & {
   readonly __brand: "Locale";
 }
 
-const MAX_LOCALE_LENGTH = 35;
-
 export function createLocale(value: string): Locale {
+  let locale: string;
+
   try {
-    const locale = new Intl.Locale(value.trim()).toString();
-
-    if (locale.length > MAX_LOCALE_LENGTH) {
-      throw new InvalidLocaleError();
-    }
-
-    return locale as Locale;
+    locale = new Intl.Locale(value.trim()).toString();
   } catch {
     throw new InvalidLocaleError();
   }
+
+  if (locale.length > MAX_LOCALE_LENGTH) {
+    throw new LocaleTooLongError();
+  }
+
+  return locale as Locale;
 }
