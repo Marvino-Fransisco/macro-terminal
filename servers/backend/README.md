@@ -37,7 +37,7 @@ server/
     ├── config/
     │   └── ...
     │
-    ├── interfaces/
+    ├── api/
     │   └── http/
     │       ├── controllers/
     │       ├── routes/

@@ -1,0 +1,2 @@
+export const MIN_DISPLAY_NAME_LENGTH = 0;
+export const MAX_DISPLAY_NAME_LENGTH = 255;
