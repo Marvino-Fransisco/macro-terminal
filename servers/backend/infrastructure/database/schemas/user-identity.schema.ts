@@ -16,3 +16,5 @@ export const userIdentitiesTable = snakeCase.table(
     unique().on(table.userId, table.provider),
   ]
 );
+
+export type SelectUserIdentitiesTable = typeof userIdentitiesTable.$inferSelect;

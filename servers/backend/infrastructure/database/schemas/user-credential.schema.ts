@@ -7,3 +7,5 @@ export const userCredentialsTable = snakeCase.table("user_credentials", {
   passwordHash: varchar({ length: 255 }).notNull(),
   ...entity,
 })
+
+export type SelectUserCredentialsTable = typeof userCredentialsTable.$inferSelect;

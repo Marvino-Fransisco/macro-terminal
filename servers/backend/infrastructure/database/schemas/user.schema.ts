@@ -9,4 +9,6 @@ export const usersTable = snakeCase.table("users", {
   timeZone: varchar({ length: 64 }).notNull(),
   defaultCurrency: char({ length: 3 }).notNull(),
   ...entity,
-})
+});
+
+export type SelectUsersTable = typeof usersTable.$inferSelect;
