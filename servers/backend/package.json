@@ -7,15 +7,16 @@
   "dependencies": {
     "argon2": "^0.45.1",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "^1.0.0-rc.4",
+    "drizzle-orm": "^1.0.0-rc.5-ab785fc",
     "pg": "^8.23.0",
     "postgres": "^3.4.9",
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.0",
     "@types/node": "^26.4.0",
     "@types/pg": "^8.23.1",
-    "drizzle-kit": "^1.0.0-rc.4",
+    "drizzle-kit": "^1.0.0-rc.5-ab785fc",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   }
