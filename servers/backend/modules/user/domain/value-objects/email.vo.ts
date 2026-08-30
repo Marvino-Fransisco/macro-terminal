@@ -1,3 +1,4 @@
+import { MAX_EMAIL_LENGTH } from "../../constants";
 import { InvalidEmailError } from "../errors/email.error";
 
 export type Email = string & {
@@ -7,7 +8,7 @@ export type Email = string & {
 export function createEmail(value: string): Email {
   const normalized = value.trim().toLowerCase();
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+  if (normalized.length > MAX_EMAIL_LENGTH || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
     throw new InvalidEmailError();
   }
 
