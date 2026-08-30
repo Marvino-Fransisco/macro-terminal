@@ -1,3 +1,5 @@
+import { InvalidPasswordError } from "../errors/password.error";
+
 export type Password = string & {
   readonly __brand: "Password";
 };
@@ -9,7 +11,7 @@ export function createPassword(value: string): Password {
   const hasSymbol = /[^A-Za-z0-9]/.test(value);
 
   if(!isLengthValid || !hasLetter || !hasNumber || !hasSymbol) {
-    throw new Error("Password must contain at least one letter, one number, and one symbol");
+    throw new InvalidPasswordError();
   }
 
   return value as Password;

@@ -1,5 +1,5 @@
-import argon2 from "argon2";
-import { PasswordHasher } from "../modules/shared";
+import { PasswordHasher } from "@/modules/authentication";
+import * as argon2 from "argon2";
 
 export const argon2PasswordHasher: PasswordHasher = {
   async hash(password): Promise<string> {

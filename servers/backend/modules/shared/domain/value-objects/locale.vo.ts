@@ -1,3 +1,5 @@
+import { InvalidLocaleError } from "../errors/local.error";
+
 export type Locale = string & {
   readonly __brand: "Locale";
 }
@@ -7,6 +9,6 @@ export function createLocale(value: string): Locale {
     const locale = new Intl.Locale(value.trim()).toString();
     return locale as Locale;
   } catch {
-    throw new Error("Invalid locale");
+    throw new InvalidLocaleError();
   }
 }

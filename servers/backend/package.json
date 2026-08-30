@@ -1,5 +1,11 @@
 {
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "argon2": "^0.45.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
   }
 }
