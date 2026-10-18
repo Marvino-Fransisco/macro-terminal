@@ -2,7 +2,15 @@ import { createEmail, Email } from "../value-objects/email.vo";
 import { createUsername, Username } from "../value-objects/username.vo";
 import { createDisplayName, DisplayName } from "../value-objects/display-name.vo";
 import { createCurrency, createLocale, createTimeZone, Currency, Entity, Locale, TimeZone } from "../../../shared";
-import { CreateUserInput } from "../types/create-user.input";
+
+export type CreateUserInput = {
+  username: string;
+  email: string;
+  displayName: string;
+  locale: string;
+  timeZone: string;
+  defaultCurrency: string;
+};
 
 export type User = Entity & {
   username: Username;

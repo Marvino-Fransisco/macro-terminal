@@ -1,4 +1,4 @@
-import { InvalidLocaleError, LocaleTooLongError } from "../errors/local.error";
+import { InvalidLocaleError, LocaleTooLongError } from "../errors/locale.error";
 import { MAX_LOCALE_LENGTH } from "../../constants/locale.const";
 
 export type Locale = string & {

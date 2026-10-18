@@ -1,4 +1,4 @@
-import { Password } from "../../../shared";
+import { Password } from "../../shared";
 
 export interface PasswordHasher {
   hash(password: Password): Promise<string>;

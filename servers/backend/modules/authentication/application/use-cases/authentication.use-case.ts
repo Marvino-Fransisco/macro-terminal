@@ -1,12 +1,12 @@
 import { CreateNewUserRequest, UserUseCase } from "@/modules/user";
-import { AuthenticationUseCase } from "../ports/authentication.port";
-import { PasswordHasher } from "../ports/password-hasher.port";
-import { UserCredentialRepository } from "../ports/user-credential-repository.port";
-import { RegisterRequest } from "../dtos/requests/register.request";
-import { RegisterResponse } from "../dtos/responses/register.response";
+import { AuthenticationUseCase } from "../../ports/authentication.port";
+import { PasswordHasher } from "../../ports/password-hasher.port";
+import { UserCredentialRepository } from "../../ports/user-credential-repository.port";
+import { RegisterRequest } from "../../ports/dtos/requests/register.request";
+import { RegisterResponse } from "../../ports/dtos/responses/register.response";
 import { createPassword, UnitOfWork } from "@/modules/shared";
 import { createUserCredential } from "../../domain/entities/user-credential.entity";
-import { ConfirmPasswordMismatchError } from "../errors/password.error";
+import { ConfirmPasswordMismatchError } from "../../domain/errors/confirm-password-mismatch.error";
 
 export function createAuthenticationUseCase(
   unitOfWork: UnitOfWork,

@@ -1,11 +1,11 @@
-import { UserUseCase } from "../ports/user.port";
-import { UserRepository } from "../ports/user-repository.port";
-import { CreateNewUserRequest } from "../dtos/requests/create-new-user.request";
-import { CreateNewUserResponse } from "../dtos/responses/create-new-user.response";
-import { createUser } from "../../domain/entites/user.entity";
+import { UserUseCase } from "../../ports/user.port";
+import { UserRepository } from "../../ports/user-repository.port";
+import { CreateNewUserRequest } from "../../ports/dtos/requests/create-new-user.request";
+import { CreateNewUserResponse } from "../../ports/dtos/responses/create-new-user.response";
+import { createUser } from "../../domain/entities/user.entity";
 import { DEFAULT_CURRENCY } from "@/modules/shared";
-import { EmailAlreadyTakenError } from "../errors/email.error";
-import { UsernameAlreadyTakenError } from "../errors/username.error";
+import { EmailAlreadyTakenError } from "../../domain/errors/email-already-taken.error";
+import { UsernameAlreadyTakenError } from "../../domain/errors/username-already-taken.error";
 
 export function createUserUseCase(
   userRepository: UserRepository,

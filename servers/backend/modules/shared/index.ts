@@ -6,7 +6,7 @@ export * from "./domain/value-objects/password.vo";
 export * from "./domain/value-objects/country-iso2.vo";
 export * from "./domain/value-objects/country-iso3.vo";
 export * from "./domain/value-objects/name.vo";
-export * from "./application/ports/unit-of-work.port";
+export * from "./ports/unit-of-work.port";
 export * from "./constants/currency.const";
 export * from "./constants/locale.const";
 export * from "./constants/time-zone.const";
