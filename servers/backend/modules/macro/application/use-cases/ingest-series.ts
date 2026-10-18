@@ -1,8 +1,8 @@
-import type { MacroDataProvider } from "../ports/macro-data-provider.port";
-import type { MacroRepository } from "../ports/macro-repository.port";
+import type { IngestSeriesUseCase } from "../../ports/ingest-series.port";
+import type { MacroDataProvider } from "../../ports/macro-data-provider.port";
+import type { MacroRepository } from "../../ports/macro-repository.port";
 import type { Frequency } from "../../domain/value-objects/frequency.vo";
 import type { Provider } from "../../domain/value-objects/provider.vo";
-import type { Series } from "../../domain/entities/series.entity";
 import type { Point } from "../../domain/value-objects/point.vo";
 import { createPeriodDate } from "../../domain/value-objects/period-date.vo";
 
@@ -23,13 +23,13 @@ export function normalizeObservations(points: Point[]): Point[] {
   return [...unique.values()].sort((a, b) => a.periodDate.localeCompare(b.periodDate));
 }
 
-export function createIngestSeries(repository: MacroRepository, resolve: (provider: Provider) => MacroDataProvider, clock = () => new Date()) {
-  return async (series: Series, range?: { from: string; to: string }) => {
+export function createIngestSeries(repository: MacroRepository, resolve: (provider: Provider) => MacroDataProvider, clock = () => new Date()): IngestSeriesUseCase {
+  return async (series, range) => {
     const runId = await repository.startRun(series.id);
     try {
       let from = range?.from;
       if (!range && series.frequency === "daily" && series.lastPolledAt) {
-        const history = await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId }, false);
+        const history = await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, publicOnly: false });
         const latest = history?.series.id === series.id ? history.observations.at(-1) : undefined;
         if (latest) from = new Date(Date.parse(latest.periodDate) - 30 * 86400_000).toISOString().slice(0, 10);
       }
@@ -38,10 +38,10 @@ export function createIngestSeries(repository: MacroRepository, resolve: (provid
         ...(from ? { from } : {}), ...(range ? { to: range.to } : {}),
       }));
       const now = clock();
-      const inserted = await repository.completeRun(runId, series, points, now, nextPollAt(series.frequency, now));
+      const inserted = await repository.completeRun({ runId, series, points, now, nextPollAt: nextPollAt(series.frequency, now) });
       return { rowsFetched: points.length, rowsInserted: inserted };
     } catch (error) {
-      await repository.failRun(runId, series.id, error instanceof Error ? error.message : "Unknown ingestion error", new Date(clock().getTime() + 15 * 60_000));
+      await repository.failRun({ runId, seriesId: series.id, error: error instanceof Error ? error.message : "Unknown ingestion error", nextPollAt: new Date(clock().getTime() + 15 * 60_000) });
       throw error;
     }
   };

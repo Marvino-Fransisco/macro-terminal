@@ -1,5 +1,5 @@
 import z from "zod";
-import type { MacroDataProvider } from "@/modules/macro/application/ports/macro-data-provider.port";
+import type { MacroDataProvider } from "@/modules/macro/ports/macro-data-provider.port";
 import type { CountryInput } from "@/modules/macro/domain/entities/country.entity";
 import { createCountryIso3 } from "@/modules/shared/domain/value-objects/country-iso3.vo";
 import { createCountryIso2 } from "@/modules/shared/domain/value-objects/country-iso2.vo";

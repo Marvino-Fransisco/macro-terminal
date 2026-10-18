@@ -1,6 +1,7 @@
 import { createCountryIso3 } from "@/modules/shared/domain/value-objects/country-iso3.vo";
-import type { MacroRepository } from "../ports/macro-repository.port";
-import type { GetSeriesRequest } from "../dtos/requests/get-series.request";
+import type { MacroRepository } from "../../ports/macro-repository.port";
+import type { GetSeriesRequest } from "../../ports/dtos/requests/get-series.request";
+import type { MacroUseCase } from "../../ports/macro.port";
 import { createFeatureCode } from "../../domain/value-objects/feature-code.vo";
 import { createIndicatorCode } from "../../domain/value-objects/indicator-code.vo";
 import { createPeriodDate, type PeriodDate } from "../../domain/value-objects/period-date.vo";
@@ -20,7 +21,7 @@ export function parseRange(from?: string, to?: string): { from?: PeriodDate; to?
   return range;
 }
 
-export function createGetMacro(repository: MacroRepository) {
+export function createGetMacro(repository: MacroRepository): MacroUseCase {
   async function getSeries(request: GetSeriesRequest) {
     const country = createCountryIso3(request.country);
     const indicator = createIndicatorCode(request.indicator);
@@ -30,9 +31,9 @@ export function createGetMacro(repository: MacroRepository) {
     if (!countryRecord) return undefined;
     if (FEATURE_DEFINITIONS.some((d) => d.code === indicator) && !request.feature) {
       if (asOf) throw new MacroValidationError("Point-in-time composites are not supported");
-      const publicSeries = await repository.countrySeries(countryRecord.id, true);
+      const publicSeries = await repository.countrySeries({ countryId: countryRecord.id, publicOnly: true });
       const allowed = new Set(publicSeries.map((s) => s.id));
-      const points = (await repository.features(countryRecord.id, createFeatureCode(indicator), range.from, range.to))
+      const points = (await repository.features({ countryId: countryRecord.id, code: createFeatureCode(indicator), ...range }))
         .filter((p) => p.sourceSeriesIds.length > 0 && p.sourceSeriesIds.every((id) => allowed.has(id)));
       const used = new Set(points.flatMap((p) => p.sourceSeriesIds));
       const sources = publicSeries.filter((s) => used.has(s.id)).map((s) => ({ seriesId: s.id, provider: s.provider, providerSeriesId: s.providerSeriesId, unit: s.unit, methodology: s.methodology }));
@@ -40,7 +41,7 @@ export function createGetMacro(repository: MacroRepository) {
     }
     const indicatorRecord = await repository.findIndicator(indicator);
     if (!indicatorRecord) return undefined;
-    const history = await repository.history({ countryId: countryRecord.id, indicatorId: indicatorRecord.id, ...(asOf ? { asOf } : {}) }, true);
+    const history = await repository.history({ countryId: countryRecord.id, indicatorId: indicatorRecord.id, publicOnly: true, ...(asOf ? { asOf } : {}) });
     if (!history) return undefined;
     let observations = history.observations.map(({ periodDate, value }) => ({ periodDate, value }));
     if (request.feature === "revision") {
@@ -69,14 +70,14 @@ export function createGetMacro(repository: MacroRepository) {
       const country = createCountryIso3(countryInput);
       const countryRecord = await repository.findCountry(country);
       if (!countryRecord) return { country, indicators: [], attributions: [] };
-      const series = await repository.countrySeries(countryRecord.id, true);
+      const series = await repository.countrySeries({ countryId: countryRecord.id, publicOnly: true });
       const indicatorIds = [...new Set(series.map((s) => s.indicatorId))];
       const today = createPeriodDate(new Date().toISOString().slice(0, 10));
       const horizon = createPeriodDate(new Date(Date.now() + 180 * 86400_000).toISOString().slice(0, 10));
-      const releases = await repository.calendar(today, horizon, countryRecord.id);
+      const releases = await repository.calendar({ from: today, to: horizon, countryId: countryRecord.id });
       const rows = [];
       for (const indicatorId of indicatorIds) {
-        const history = await repository.history({ countryId: countryRecord.id, indicatorId }, true);
+        const history = await repository.history({ countryId: countryRecord.id, indicatorId, publicOnly: true });
         if (!history) continue;
         const latest = history.observations.at(-1)!;
         const previous = history.observations.at(-2);
@@ -92,7 +93,7 @@ export function createGetMacro(repository: MacroRepository) {
       const indicatorRecord = await repository.findIndicator(indicator);
       const countryRecords = await Promise.all(countries.map((country) => repository.findCountry(country)));
       if (!indicatorRecord || countryRecords.some((record) => !record)) return undefined;
-      const histories = await Promise.all(countryRecords.map((record) => repository.history({ countryId: record!.id, indicatorId: indicatorRecord.id, ...range }, true)));
+      const histories = await Promise.all(countryRecords.map((record) => repository.history({ countryId: record!.id, indicatorId: indicatorRecord.id, publicOnly: true, ...range })));
       if (histories.some((h) => !h)) return undefined;
       const available = histories.map((h) => h!);
       const reference = available[0]!.series;
@@ -107,10 +108,8 @@ export function createGetMacro(repository: MacroRepository) {
       parseRange(from, to);
       const countryRecord = country ? await repository.findCountry(createCountryIso3(country)) : undefined;
       if (country && !countryRecord) return { events: [], attributions: [] };
-      const events = await repository.calendar(createPeriodDate(from), createPeriodDate(to), countryRecord?.id);
+      const events = await repository.calendar({ from: createPeriodDate(from), to: createPeriodDate(to), ...(countryRecord ? { countryId: countryRecord.id } : {}) });
       return { events, attributions: providerAttributions(events.map((event) => event.provider)) };
     },
   };
 }
-
-export type MacroUseCases = ReturnType<typeof createGetMacro>;

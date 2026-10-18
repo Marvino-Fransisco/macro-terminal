@@ -1,0 +1,42 @@
+import type { CountryIso3 } from "@/modules/shared/domain/value-objects/country-iso3.vo";
+import type { Country } from "../domain/entities/country.entity";
+import type { FeatureObservation } from "../domain/entities/feature-observation.entity";
+import type { Indicator } from "../domain/entities/indicator.entity";
+import type { Observation } from "../domain/entities/observation.entity";
+import type { ReleaseEvent, ReleaseEventInput } from "../domain/entities/release-event.entity";
+import type { Series } from "../domain/entities/series.entity";
+import type { IndicatorCode } from "../domain/value-objects/indicator-code.vo";
+import type { CalendarCriteria } from "./dtos/criteria/calendar.criteria";
+import type { ClaimDueCriteria } from "./dtos/criteria/claim-due.criteria";
+import type { CompleteRunCriteria } from "./dtos/criteria/complete-run.criteria";
+import type { CountrySeriesCriteria } from "./dtos/criteria/country-series.criteria";
+import type { FailRunCriteria } from "./dtos/criteria/fail-run.criteria";
+import type { FeatureCriteria } from "./dtos/criteria/feature.criteria";
+import type { HistoryCriteria } from "./dtos/criteria/history.criteria";
+import type { SaveFeaturesCriteria } from "./dtos/criteria/save-features.criteria";
+import type { CoverageRowModel } from "./dtos/models/coverage-row.model";
+import type { FeatureJobModel } from "./dtos/models/feature-job.model";
+import type { ProviderFailureModel } from "./dtos/models/provider-failure.model";
+import type { SeriesHistoryModel } from "./dtos/models/series-history.model";
+
+export interface MacroRepository {
+  coverage(publicOnly: boolean): Promise<CoverageRowModel[]>;
+  providerFailures(): Promise<ProviderFailureModel[]>;
+  claimDue(criteria: ClaimDueCriteria): Promise<Series[]>;
+  findSeries(id: string): Promise<Series | undefined>;
+  findCountry(code: CountryIso3): Promise<Country | undefined>;
+  findIndicator(code: IndicatorCode): Promise<Indicator | undefined>;
+  startRun(seriesId: string): Promise<string>;
+  completeRun(criteria: CompleteRunCriteria): Promise<number>;
+  failRun(criteria: FailRunCriteria): Promise<void>;
+  history(criteria: HistoryCriteria): Promise<SeriesHistoryModel | undefined>;
+  vintages(seriesId: string): Promise<Observation[]>;
+  countrySeries(criteria: CountrySeriesCriteria): Promise<Series[]>;
+  countries(): Promise<Country[]>;
+  indicators(category?: string): Promise<Indicator[]>;
+  calendar(criteria: CalendarCriteria): Promise<ReleaseEvent[]>;
+  saveReleases(events: ReleaseEventInput[]): Promise<void>;
+  pendingFeatureJobs(limit: number): Promise<FeatureJobModel[]>;
+  saveFeatures(criteria: SaveFeaturesCriteria): Promise<void>;
+  features(criteria: FeatureCriteria): Promise<FeatureObservation[]>;
+}

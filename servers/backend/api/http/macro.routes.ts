@@ -1,5 +1,5 @@
 import { Elysia, t } from "elysia";
-import type { MacroUseCases } from "@/modules/macro/application/use-cases/get-macro";
+import type { MacroUseCase } from "@/modules/macro";
 import { MacroValidationError } from "@/modules/macro/domain/errors/macro-validation.error";
 import { InvalidIndicatorCodeError } from "@/modules/macro/domain/errors/invalid-indicator-code.error";
 import { InvalidPeriodDateError } from "@/modules/macro/domain/errors/invalid-period-date.error";
@@ -7,7 +7,7 @@ import { InvalidCountryIso3Error } from "@/modules/shared/domain/errors/country.
 
 const range = { from: t.Optional(t.String({ maxLength: 10 })), to: t.Optional(t.String({ maxLength: 10 })) };
 
-export function createMacroRoutes(macro: MacroUseCases) {
+export function createMacroRoutes(macro: MacroUseCase) {
   return new Elysia({ prefix: "/macro" })
     .onError(({ error, code, set }) => {
       if (error instanceof MacroValidationError || error instanceof InvalidCountryIso3Error || error instanceof InvalidIndicatorCodeError || error instanceof InvalidPeriodDateError) {

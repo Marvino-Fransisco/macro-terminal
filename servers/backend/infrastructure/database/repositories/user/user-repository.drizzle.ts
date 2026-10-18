@@ -9,9 +9,11 @@ import { getConnection } from "../../unit-of-work/unit-of-work.drizzle";
 export function createUserRepository(
   db: Database
 ): UserRepository {
+  const connection = () => getConnection(db);
+
   return {
     async findByUsername(username) {
-      const [user] = await getConnection(db)
+      const [user] = await connection()
         .select()
         .from(usersTable)
         .where(eq(usersTable.username, username));
@@ -24,7 +26,7 @@ export function createUserRepository(
     },
 
     async findByEmail(email) {
-      const [user] = await getConnection(db)
+      const [user] = await connection()
         .select()
         .from(usersTable)
         .where(eq(usersTable.email, email));
@@ -37,7 +39,7 @@ export function createUserRepository(
     },
 
     async create(newUser) {
-      const [user] = await getConnection(db)
+      const [user] = await connection()
         .insert(usersTable)
         .values(newUser)
         .returning();

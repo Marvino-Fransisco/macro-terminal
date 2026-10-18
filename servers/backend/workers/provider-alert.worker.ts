@@ -1,4 +1,4 @@
-import type { MacroRepository } from "@/modules/macro/application/ports/macro-repository.port";
+import type { MacroRepository } from "@/modules/macro/ports/macro-repository.port";
 
 export function createProviderAlertWorker(repository: Pick<MacroRepository, "providerFailures">, alert = (event: { provider: string; failedSeriesIds: string[] }) => console.error("macro provider repeated ingestion failures", event)) {
   const active = new Map<string, string>();

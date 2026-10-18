@@ -1,6 +1,6 @@
 import z from "zod";
-import type { ProviderSeriesMetadataResponse } from "@/modules/macro/application/dtos/responses/provider-series-metadata.response";
-import type { MacroDataProvider } from "@/modules/macro/application/ports/macro-data-provider.port";
+import type { ProviderSeriesMetadataResponse } from "@/modules/macro/ports/dtos/responses/provider-series-metadata.response";
+import type { MacroDataProvider } from "@/modules/macro/ports/macro-data-provider.port";
 import type { ReleaseEventInput } from "@/modules/macro/domain/entities/release-event.entity";
 import { createPeriodDate, createPoint, type Frequency, type Point } from "@/modules/macro";
 import { createProviderHttpClient, parseProviderNumber, type ProviderHttpClient } from "../http-client";

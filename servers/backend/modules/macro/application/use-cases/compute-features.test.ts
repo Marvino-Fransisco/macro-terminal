@@ -4,12 +4,12 @@ import { createIndicatorCode } from "../../domain/value-objects/indicator-code.v
 import { createPeriodDate } from "../../domain/value-objects/period-date.vo";
 import { createPriority } from "../../domain/value-objects/priority.vo";
 import { createName } from "@/modules/shared/domain/value-objects/name.vo";
-import type { SeriesHistoryResponse } from "../dtos/responses/series-history.response";
+import type { SeriesHistoryModel } from "../../ports/dtos/models/series-history.model";
 import { computeCountryFeatures } from "./compute-features";
 
 const COUNTRY_ID = crypto.randomUUID();
 
-function history(code: string, values: number[], frequency: Frequency = "monthly", unit = "Index"): SeriesHistoryResponse {
+function history(code: string, values: number[], frequency: Frequency = "monthly", unit = "Index"): SeriesHistoryModel {
   const id = crypto.randomUUID();
   const indicatorId = crypto.randomUUID();
   const timestamps = { createdAt: new Date("2022-01-01"), updatedAt: new Date("2022-01-01"), deletedAt: null };

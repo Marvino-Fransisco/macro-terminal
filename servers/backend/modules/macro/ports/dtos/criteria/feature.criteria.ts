@@ -1,9 +1,9 @@
+import type { FeatureCode } from "../../../domain/value-objects/feature-code.vo";
 import type { PeriodDate } from "../../../domain/value-objects/period-date.vo";
 
-export type HistoryRequest = {
+export type FeatureCriteria = {
   countryId: string;
-  indicatorId: string;
+  code: FeatureCode;
   from?: PeriodDate;
   to?: PeriodDate;
-  asOf?: PeriodDate;
 }

@@ -8,9 +8,11 @@ import { getConnection } from "../../unit-of-work/unit-of-work.drizzle";
 export function createUserCredentialRepository(
   db: Database
 ): UserCredentialRepository {
+  const connection = () => getConnection(db);
+
   return {
     async createCredential(newUserCredential) {
-      const [userCredential] = await getConnection(db)
+      const [userCredential] = await connection()
         .insert(userCredentialsTable)
         .values(newUserCredential)
         .returning();

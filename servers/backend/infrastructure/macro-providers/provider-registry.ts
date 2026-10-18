@@ -1,4 +1,4 @@
-import type { MacroDataProvider } from "@/modules/macro/application/ports/macro-data-provider.port";
+import type { MacroDataProvider } from "@/modules/macro/ports/macro-data-provider.port";
 import type { Provider } from "@/modules/macro";
 
 export type ProviderRegistry = (provider: Provider) => MacroDataProvider;

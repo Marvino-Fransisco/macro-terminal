@@ -2,7 +2,7 @@ import type { CountryIso3 } from "@/modules/shared/domain/value-objects/country-
 import type { Series } from "../../../domain/entities/series.entity";
 import type { IndicatorCode } from "../../../domain/value-objects/indicator-code.vo";
 
-export type CoverageRowResponse = {
+export type CoverageRowModel = {
   countryIso3: CountryIso3;
   indicatorCode: IndicatorCode;
   provider: Series["provider"];

@@ -1,14 +1,15 @@
+import type { ComputeFeaturesUseCase } from "../../ports/compute-features.port";
 import type { FeatureObservationInput } from "../../domain/entities/feature-observation.entity";
 import type { Series } from "../../domain/entities/series.entity";
 import { createFeatureCode } from "../../domain/value-objects/feature-code.vo";
 import type { Point } from "../../domain/value-objects/point.vo";
-import type { SeriesHistoryResponse } from "../dtos/responses/series-history.response";
-import type { MacroRepository } from "../ports/macro-repository.port";
+import type { SeriesHistoryModel } from "../../ports/dtos/models/series-history.model";
+import type { MacroRepository } from "../../ports/macro-repository.port";
 import { FEATURE_DEFINITIONS } from "../../domain/features/definitions/definitions";
 import { usdBillions } from "../../domain/features/composites";
 import { transform } from "../../domain/features/transforms";
 
-export function computeCountryFeatures(countryId: string, histories: SeriesHistoryResponse[], now: Date): FeatureObservationInput[] {
+export function computeCountryFeatures(countryId: string, histories: SeriesHistoryModel[], now: Date): FeatureObservationInput[] {
   const available = new Map<string, { points: Point[]; sources: string[] }>();
   const metadata = new Map<string, Series>();
   const result: FeatureObservationInput[] = [];
@@ -43,16 +44,16 @@ export function computeCountryFeatures(countryId: string, histories: SeriesHisto
   return result;
 }
 
-export function createComputeFeatures(repository: MacroRepository) {
-  return async (countryId: string, requestedAt: Date) => {
-    const series = await repository.countrySeries(countryId, false);
-    const histories: SeriesHistoryResponse[] = [];
+export function createComputeFeatures(repository: MacroRepository): ComputeFeaturesUseCase {
+  return async (countryId, requestedAt) => {
+    const series = await repository.countrySeries({ countryId, publicOnly: false });
+    const histories: SeriesHistoryModel[] = [];
     for (const indicatorId of new Set(series.map((s) => s.indicatorId))) {
-      const history = await repository.history({ countryId, indicatorId }, false);
+      const history = await repository.history({ countryId, indicatorId, publicOnly: false });
       if (history) histories.push(history);
     }
     const features = computeCountryFeatures(countryId, histories, new Date());
-    await repository.saveFeatures(countryId, features, requestedAt);
+    await repository.saveFeatures({ countryId, features, requestedAt });
     return features.length;
   };
 }

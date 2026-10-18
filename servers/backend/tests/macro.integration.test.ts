@@ -18,7 +18,7 @@ import { createCountryIso3 } from "@/modules/shared/domain/value-objects/country
 import { createCountryIso2 } from "@/modules/shared/domain/value-objects/country-iso2.vo";
 import { createName } from "@/modules/shared/domain/value-objects/name.vo";
 import { createFeatureCode, createIndicatorCode, createPeriodDate, createPoint, createPriority } from "@/modules/macro";
-import type { MacroRepository } from "@/modules/macro/application/ports/macro-repository.port";
+import type { MacroRepository } from "@/modules/macro/ports/macro-repository.port";
 import { createIngestSeries } from "@/modules/macro/application/use-cases/ingest-series";
 import { createGetMacro } from "@/modules/macro/application/use-cases/get-macro";
 import { createMacroRoutes } from "@/api/http/macro.routes";
@@ -65,8 +65,8 @@ integration("append-only revisions, idempotency, point-in-time reads and same-da
     value = 102;
     expect((await ingest(series)).rowsInserted).toBe(1);
     expect((await repository.vintages(series.id)).length).toBe(2);
-    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, asOf: createPeriodDate("2024-02-01") }, false))!.observations[0]!.value).toBe(100);
-    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId }, false))!.observations[0]!.value).toBe(102);
+    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, asOf: createPeriodDate("2024-02-01"), publicOnly: false }))!.observations[0]!.value).toBe(100);
+    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, publicOnly: false }))!.observations[0]!.value).toBe(102);
     value = 103;
     await expect(ingest(series)).rejects.toThrow("Conflicting same-day revision");
     expect((await repository.vintages(series.id)).length).toBe(2);
@@ -79,7 +79,7 @@ integration("routes fail closed, validate input and preserve transform warmup ou
   await scenario(async (repository, series) => {
     const points = Array.from({ length: 13 }, (_, i) => createPoint(new Date(Date.UTC(2020, i, 1)).toISOString().slice(0, 10), i === 12 ? 110 : 100));
     const run = await repository.startRun(series.id);
-    await repository.completeRun(run, series, points, new Date("2022-01-01"), new Date("2022-02-01"));
+    await repository.completeRun({ runId: run, series: series, points: points, now: new Date("2022-01-01"), nextPollAt: new Date("2022-02-01") });
     const app = createMacroRoutes(createGetMacro(repository));
     const request = (path: string) => app.handle(new Request(`http://localhost/macro${path}`));
     expect((await request("/series/TST/TEST_INDEX")).status).toBe(404);
@@ -107,47 +107,47 @@ integration("provider priority falls back only when preferred series has no data
     const [fallback] = await getConnection(db).insert(seriesTable).values({ countryId: series.countryId, indicatorId: series.indicatorId, provider: "worldbank", providerSeriesId: "TST:TEST", priority: createPriority(2), frequency: "monthly", unit: "Index", seasonalAdjustment: "sa", redistributable: true }).returning();
     if (!fallback) throw new Error("Missing fallback");
     const run = await repository.startRun(fallback.id);
-    await repository.completeRun(run, fallback, [createPoint("2024-01-01", 2)], new Date("2024-02-01"), new Date("2024-03-01"));
-    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId }, false))!.series.id).toBe(fallback.id);
+    await repository.completeRun({ runId: run, series: fallback, points: [createPoint("2024-01-01", 2)], now: new Date("2024-02-01"), nextPollAt: new Date("2024-03-01") });
+    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, publicOnly: false }))!.series.id).toBe(fallback.id);
     const preferredRun = await repository.startRun(preferred.id);
-    await repository.completeRun(preferredRun, preferred, [createPoint("2024-01-01", 1)], new Date("2024-02-01"), new Date("2024-03-01"));
-    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId }, false))!.series.id).toBe(preferred.id);
-    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId }, true))!.series.id).toBe(fallback.id);
+    await repository.completeRun({ runId: preferredRun, series: preferred, points: [createPoint("2024-01-01", 1)], now: new Date("2024-02-01"), nextPollAt: new Date("2024-03-01") });
+    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, publicOnly: false }))!.series.id).toBe(preferred.id);
+    expect((await repository.history({ countryId: series.countryId, indicatorId: series.indicatorId, publicOnly: true }))!.series.id).toBe(fallback.id);
   });
 });
 
 integration("feature jobs persist recomputation, reject stale job results and enforce source permissions", async () => {
   await scenario(async (repository, series) => {
     const run = await repository.startRun(series.id);
-    await repository.completeRun(run, series, [createPoint("2024-01-01", 1), createPoint("2024-02-01", 2)], new Date("2024-03-01"), new Date("2024-04-01"));
+    await repository.completeRun({ runId: run, series: series, points: [createPoint("2024-01-01", 1), createPoint("2024-02-01", 2)], now: new Date("2024-03-01"), nextPollAt: new Date("2024-04-01") });
     const job = (await repository.pendingFeatureJobs(1000)).find((pending) => pending.countryId === series.countryId);
     if (!job) throw new Error("Missing job");
     expect(await createComputeFeatures(repository)(series.countryId, job.requestedAt)).toBeGreaterThan(0);
     expect((await repository.pendingFeatureJobs(1000)).filter((pending) => pending.countryId === series.countryId).length).toBe(0);
-    const saved = await repository.features(series.countryId, createFeatureCode("TEST_INDEX:yoy"));
+    const saved = await repository.features({ countryId: series.countryId, code: createFeatureCode("TEST_INDEX:yoy") });
     expect(saved.length).toBe(0);
     const nextToken = new Date("2024-03-02");
     await getConnection(db).insert(featureJobsTable).values({ countryId: series.countryId, requestedAt: nextToken });
-    await repository.saveFeatures(series.countryId, [], job.requestedAt);
+    await repository.saveFeatures({ countryId: series.countryId, features: [], requestedAt: job.requestedAt });
     expect((await repository.pendingFeatureJobs(1000)).filter((pending) => pending.countryId === series.countryId).length).toBe(1);
     const feature = { countryId: series.countryId, featureCode: createFeatureCode("SPREAD_10Y_2Y"), periodDate: createPeriodDate("2024-01-01"), value: 1, sourceSeriesIds: [series.id], computedAt: new Date() };
-    await repository.saveFeatures(series.countryId, [feature], nextToken);
+    await repository.saveFeatures({ countryId: series.countryId, features: [feature], requestedAt: nextToken });
     const useCases = createGetMacro(repository);
     expect(await useCases.getSeries({ country: "TST", indicator: "SPREAD_10Y_2Y" })).toBeUndefined();
     await getConnection(db).update(seriesTable).set({ redistributable: true }).where(eq(seriesTable.id, series.id));
     expect((await useCases.getSeries({ country: "TST", indicator: "SPREAD_10Y_2Y" }))!.observations.length).toBe(1);
-    await repository.saveFeatures(series.countryId, [], nextToken);
-    expect((await repository.features(series.countryId, createFeatureCode("SPREAD_10Y_2Y"))).length).toBe(1);
+    await repository.saveFeatures({ countryId: series.countryId, features: [], requestedAt: nextToken });
+    expect((await repository.features({ countryId: series.countryId, code: createFeatureCode("SPREAD_10Y_2Y") })).length).toBe(1);
   });
 });
 
 integration("due-series leasing and repeated failure reporting", async () => {
   await scenario(async (repository, series) => {
-    expect((await repository.claimDue(new Date("2024-01-01"), 10)).some((s) => s.id === series.id)).toBe(true);
-    expect((await repository.claimDue(new Date("2024-01-01"), 10)).length).toBe(0);
+    expect((await repository.claimDue({ now: new Date("2024-01-01"), limit: 10 })).some((s) => s.id === series.id)).toBe(true);
+    expect((await repository.claimDue({ now: new Date("2024-01-01"), limit: 10 })).length).toBe(0);
     for (let i = 0; i < 3; i++) {
       const run = await repository.startRun(series.id);
-      await repository.failRun(run, series.id, "Provider unavailable", new Date("2024-02-01"));
+      await repository.failRun({ runId: run, seriesId: series.id, error: "Provider unavailable", nextPollAt: new Date("2024-02-01") });
     }
     expect((await repository.providerFailures())[0]!.consecutiveFailures).toBe(3);
     expect((await repository.coverage(false)).find((row) => row.countryIso3 === "TST" && row.indicatorCode === "TEST_INDEX")!.periods).toBe(0);
@@ -165,14 +165,14 @@ integration("release mapping filters calendars, updates overview and accelerates
     await repository.saveReleases([event]);
     await repository.saveReleases([event]);
     expect((await repository.findSeries(series.id))!.nextPollAt.toISOString().slice(0, 10)).toBe(tomorrow);
-    expect((await repository.calendar(createPeriodDate(today), createPeriodDate(tomorrow))).filter((r) => r.releaseId === releaseId).length).toBe(1);
-    expect((await repository.calendar(createPeriodDate(today), createPeriodDate(tomorrow), series.countryId)).length).toBe(0);
+    expect((await repository.calendar({ from: createPeriodDate(today), to: createPeriodDate(tomorrow) })).filter((r) => r.releaseId === releaseId).length).toBe(1);
+    expect((await repository.calendar({ from: createPeriodDate(today), to: createPeriodDate(tomorrow), countryId: series.countryId })).length).toBe(0);
     await getConnection(db).update(seriesTable).set({ redistributable: true }).where(eq(seriesTable.id, series.id));
-    expect((await repository.calendar(createPeriodDate(today), createPeriodDate(tomorrow), series.countryId)).length).toBe(1);
-    expect((await repository.calendar(createPeriodDate(today), createPeriodDate(tomorrow), crypto.randomUUID())).length).toBe(0);
+    expect((await repository.calendar({ from: createPeriodDate(today), to: createPeriodDate(tomorrow), countryId: series.countryId })).length).toBe(1);
+    expect((await repository.calendar({ from: createPeriodDate(today), to: createPeriodDate(tomorrow), countryId: crypto.randomUUID() })).length).toBe(0);
     const run = await repository.startRun(series.id);
     const now = new Date(`${tomorrow}T12:00:00Z`);
-    await repository.completeRun(run, mapped, [createPoint(today, 1)], now, new Date(now.getTime() + 24 * 3600_000));
+    await repository.completeRun({ runId: run, series: mapped, points: [createPoint(today, 1)], now, nextPollAt: new Date(now.getTime() + 24 * 3600_000) });
     expect((await repository.findSeries(series.id))!.nextPollAt.getTime()).toBe(now.getTime() + 3600_000);
     const overview = await createGetMacro(repository).overview("TST");
     expect(overview.indicators[0]!.nextRelease?.releaseId).toBe(releaseId);
@@ -187,7 +187,7 @@ integration("comparison aligns common periods, flags mixed providers and rejects
     await getConnection(db).update(seriesTable).set({ redistributable: true }).where(eq(seriesTable.id, series.id));
     for (const input of [series, other]) {
       const run = await repository.startRun(input.id);
-      await repository.completeRun(run, input, [createPoint("2024-01-01", input.id === series.id ? 1 : 2)], new Date("2024-02-01"), new Date("2024-03-01"));
+      await repository.completeRun({ runId: run, series: input, points: [createPoint("2024-01-01", input.id === series.id ? 1 : 2)], now: new Date("2024-02-01"), nextPollAt: new Date("2024-03-01") });
     }
     const macro = createGetMacro(repository);
     const result = await macro.compare("TEST_INDEX", ["TST", "TSU"]);
@@ -214,20 +214,20 @@ integration("all macro entities persist shared metadata without changing revisio
     const now = new Date("2024-03-01");
     const points = [createPoint("2024-01-01", 1)];
     const run = await repository.startRun(series.id);
-    await repository.completeRun(run, series, points, now, now);
+    await repository.completeRun({ runId: run, series: series, points: points, now, nextPollAt: now });
     const country = (await repository.countries()).find((row) => row.iso3 === "TST")!;
     const indicator = (await repository.indicators()).find((row) => row.code === "TEST_INDEX")!;
     const storedSeries = (await repository.findSeries(series.id))!;
     const observation = (await repository.vintages(series.id))[0]!;
     await repository.saveReleases([{ provider: "fred", releaseId: "metadata-test", releaseName: "Metadata", scheduledDate: createPeriodDate("2024-04-01"), publishedAt: null }]);
-    const release = (await repository.calendar(createPeriodDate("2024-04-01"), createPeriodDate("2024-04-01"))).find((row) => row.releaseId === "metadata-test")!;
+    const release = (await repository.calendar({ from: createPeriodDate("2024-04-01"), to: createPeriodDate("2024-04-01") })).find((row) => row.releaseId === "metadata-test")!;
     const job = (await repository.pendingFeatureJobs(1000)).find((row) => row.countryId === series.countryId)!;
-    await repository.saveFeatures(series.countryId, [{ countryId: series.countryId, featureCode: createFeatureCode("TEST_FEATURE"), periodDate: createPeriodDate("2024-01-01"), value: 1, sourceSeriesIds: [series.id], computedAt: now }], job.requestedAt);
-    const feature = (await repository.features(series.countryId, createFeatureCode("TEST_FEATURE")))[0]!;
+    await repository.saveFeatures({ countryId: series.countryId, features: [{ countryId: series.countryId, featureCode: createFeatureCode("TEST_FEATURE"), periodDate: createPeriodDate("2024-01-01"), value: 1, sourceSeriesIds: [series.id], computedAt: now }], requestedAt: job.requestedAt });
+    const feature = (await repository.features({ countryId: series.countryId, code: createFeatureCode("TEST_FEATURE") }))[0]!;
     for (const entity of [country, indicator, storedSeries, observation, release, feature]) assertEntityMetadata(entity);
     expect(storedSeries.updatedAt.getTime()).toBe(now.getTime());
     const repeatRun = await repository.startRun(series.id);
-    expect(await repository.completeRun(repeatRun, series, points, now, now)).toBe(0);
+    expect(await repository.completeRun({ runId: repeatRun, series: series, points: points, now, nextPollAt: now })).toBe(0);
     expect((await repository.vintages(series.id))[0]!.id).toBe(observation.id);
   });
 });
@@ -237,18 +237,18 @@ integration("feature recomputation preserves entity identity and creation time w
     const firstToken = new Date("2024-03-01");
     await getConnection(db).insert(featureJobsTable).values({ countryId: series.countryId, requestedAt: firstToken });
     const feature = { countryId: series.countryId, featureCode: createFeatureCode("RETAINED"), periodDate: createPeriodDate("2024-01-01"), value: 1, sourceSeriesIds: [series.id], computedAt: firstToken };
-    await repository.saveFeatures(series.countryId, [feature, { ...feature, featureCode: createFeatureCode("OBSOLETE") }], firstToken);
-    const original = (await repository.features(series.countryId, createFeatureCode("RETAINED")))[0]!;
+    await repository.saveFeatures({ countryId: series.countryId, features: [feature, { ...feature, featureCode: createFeatureCode("OBSOLETE") }], requestedAt: firstToken });
+    const original = (await repository.features({ countryId: series.countryId, code: createFeatureCode("RETAINED") }))[0]!;
     await getConnection(db).update(featureObservationsTable).set({ updatedAt: new Date("2000-01-01") }).where(eq(featureObservationsTable.id, original.id));
     const nextToken = new Date("2024-03-02");
     await getConnection(db).insert(featureJobsTable).values({ countryId: series.countryId, requestedAt: nextToken });
-    await repository.saveFeatures(series.countryId, [{ ...feature, value: 2, computedAt: nextToken }], nextToken);
-    const updated = (await repository.features(series.countryId, createFeatureCode("RETAINED")))[0]!;
+    await repository.saveFeatures({ countryId: series.countryId, features: [{ ...feature, value: 2, computedAt: nextToken }], requestedAt: nextToken });
+    const updated = (await repository.features({ countryId: series.countryId, code: createFeatureCode("RETAINED") }))[0]!;
     expect(updated.id).toBe(original.id);
     expect(updated.createdAt.getTime()).toBe(original.createdAt.getTime());
     expect(updated.updatedAt.getTime()).toBeGreaterThan(new Date("2000-01-01").getTime());
     expect(updated.value).toBe(2);
-    expect((await repository.features(series.countryId, createFeatureCode("OBSOLETE"))).length).toBe(0);
+    expect((await repository.features({ countryId: series.countryId, code: createFeatureCode("OBSOLETE") })).length).toBe(0);
   });
 });
 
@@ -256,13 +256,13 @@ integration("same-millisecond ingestions advance feature job tokens monotonicall
   await scenario(async (repository, series) => {
     const now = new Date("2024-03-01");
     const firstRun = await repository.startRun(series.id);
-    await repository.completeRun(firstRun, series, [createPoint("2024-01-01", 1)], now, now);
+    await repository.completeRun({ runId: firstRun, series: series, points: [createPoint("2024-01-01", 1)], now, nextPollAt: now });
     const firstJob = (await repository.pendingFeatureJobs(1000)).find((job) => job.countryId === series.countryId)!;
     const secondRun = await repository.startRun(series.id);
-    await repository.completeRun(secondRun, series, [createPoint("2024-02-01", 2)], now, now);
+    await repository.completeRun({ runId: secondRun, series: series, points: [createPoint("2024-02-01", 2)], now, nextPollAt: now });
     const secondJob = (await repository.pendingFeatureJobs(1000)).find((job) => job.countryId === series.countryId)!;
     expect(secondJob.requestedAt.getTime()).toBeGreaterThan(firstJob.requestedAt.getTime());
-    await repository.saveFeatures(series.countryId, [], firstJob.requestedAt);
+    await repository.saveFeatures({ countryId: series.countryId, features: [], requestedAt: firstJob.requestedAt });
     expect((await repository.pendingFeatureJobs(1000)).some((job) => job.countryId === series.countryId)).toBe(true);
   });
 });

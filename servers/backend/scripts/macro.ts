@@ -16,7 +16,7 @@ import { createBackfillSeries } from "@/modules/macro/application/use-cases/back
 import { createPeriodDate, createPriority } from "@/modules/macro";
 import { createCountryIso3 } from "@/modules/shared/domain/value-objects/country-iso3.vo";
 import { isStale } from "@/modules/macro/domain/features/staleness";
-import type { ProviderSeriesMetadataResponse } from "@/modules/macro/application/dtos/responses/provider-series-metadata.response";
+import type { ProviderSeriesMetadataResponse } from "@/modules/macro/ports/dtos/responses/provider-series-metadata.response";
 
 function requireIndicatorId(indicatorIds: Map<string, string>, code: string) {
   const id = indicatorIds.get(code);

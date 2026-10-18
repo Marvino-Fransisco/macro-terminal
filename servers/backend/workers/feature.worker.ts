@@ -1,7 +1,7 @@
-import type { MacroRepository } from "@/modules/macro/application/ports/macro-repository.port";
-import type { createComputeFeatures } from "@/modules/macro/application/use-cases/compute-features";
+import type { MacroRepository } from "@/modules/macro/ports/macro-repository.port";
+import type { ComputeFeaturesUseCase } from "@/modules/macro";
 
-export function createFeatureWorker(repository: MacroRepository, compute: ReturnType<typeof createComputeFeatures>) {
+export function createFeatureWorker(repository: MacroRepository, compute: ComputeFeaturesUseCase) {
   return async () => {
     const jobs = await repository.pendingFeatureJobs(10);
     for (const job of jobs) {

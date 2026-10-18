@@ -1,9 +1,9 @@
-import type { MacroRepository } from "@/modules/macro/application/ports/macro-repository.port";
-import type { createIngestSeries } from "@/modules/macro/application/use-cases/ingest-series";
+import type { MacroRepository } from "@/modules/macro/ports/macro-repository.port";
+import type { IngestSeriesUseCase } from "@/modules/macro";
 
-export function createIngestWorker(repository: MacroRepository, ingest: ReturnType<typeof createIngestSeries>) {
+export function createIngestWorker(repository: MacroRepository, ingest: IngestSeriesUseCase) {
   return async () => {
-    const due = await repository.claimDue(new Date(), 10);
+    const due = await repository.claimDue({ now: new Date(), limit: 10 });
     for (const series of due) {
       try {
         const result = await ingest(series);
