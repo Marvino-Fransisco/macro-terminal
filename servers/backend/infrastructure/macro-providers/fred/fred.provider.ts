@@ -1,4 +1,3 @@
-import z from "zod";
 import type { ProviderSeriesMetadataResponse } from "@/modules/macro/ports/dtos/responses/provider-series-metadata.response";
 import type { MacroDataProvider } from "@/modules/macro/ports/macro-data-provider.port";
 import type { ReleaseEventInput } from "@/modules/macro/domain/entities/release-event.entity";
@@ -13,37 +12,11 @@ import {
   parseProviderNumber,
   type ProviderHttpClient,
 } from "../http-client";
+import { fredObservationsResponseSchema } from "./dtos/responses/fred-observations.response";
+import { fredReleaseDatesResponseSchema } from "./dtos/responses/fred-release-dates.response";
+import { fredSeriesReleaseResponseSchema } from "./dtos/responses/fred-series-release.response";
+import { fredSeriesResponseSchema } from "./dtos/responses/fred-series.response";
 
-const pageSchema = z.object({
-  count: z.number().int().nonnegative(),
-  observations: z.array(z.object({ date: z.string(), value: z.string() })),
-});
-const metadataSchema = z.object({
-  seriess: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      units: z.string(),
-      frequency_short: z.string(),
-      seasonal_adjustment_short: z.string(),
-      notes: z.string().optional(),
-      last_updated: z.string(),
-    }),
-  ),
-});
-const releasesSchema = z.object({
-  count: z.number().int().nonnegative(),
-  release_dates: z.array(
-    z.object({
-      release_id: z.number(),
-      release_name: z.string(),
-      date: z.string(),
-    }),
-  ),
-});
-const seriesReleaseSchema = z.object({
-  releases: z.array(z.object({ id: z.number().int() })),
-});
 const frequencies: Record<string, Frequency> = {
   D: "daily",
   W: "weekly",
@@ -55,6 +28,7 @@ const frequencies: Record<string, Frequency> = {
 
 export function createFredProvider(
   apiKey: string,
+  baseUrl: string,
   http: ProviderHttpClient = createProviderHttpClient(),
 ): MacroDataProvider {
   if (!apiKey.trim())
@@ -62,7 +36,7 @@ export function createFredProvider(
 
   function url(path: string, params: Record<string, string>): URL {
     try {
-      const result = new URL(`https://api.stlouisfed.org/fred/${path}`);
+      const result = new URL(`${baseUrl}/${path}`);
       result.search = new URLSearchParams({
         ...params,
         api_key: apiKey,
@@ -89,7 +63,7 @@ export function createFredProvider(
         if (request.from) params.observation_start = request.from;
         if (request.to) params.observation_end = request.to;
         if (request.firstRelease) params.output_type = "4";
-        const page = pageSchema.parse(
+        const page = fredObservationsResponseSchema.parse(
           await http.json(url("series/observations", params)),
         );
         count = page.count;
@@ -106,14 +80,14 @@ export function createFredProvider(
     },
 
     async fetchSeriesMetadata(id): Promise<ProviderSeriesMetadataResponse> {
-      const data = metadataSchema.parse(
+      const data = fredSeriesResponseSchema.parse(
         await http.json(url("series", { series_id: id })),
       );
       const metadata = data.seriess[0];
       if (!metadata || metadata.id !== id)
         throw new Error(`FRED metadata missing for ${id}`);
       const updated = new Date(metadata.last_updated);
-      const release = seriesReleaseSchema.parse(
+      const release = fredSeriesReleaseResponseSchema.parse(
         await http.json(url("series/release", { series_id: id })),
       ).releases[0];
       return {
@@ -140,7 +114,7 @@ export function createFredProvider(
       let offset = 0;
       let count = Infinity;
       while (offset < count) {
-        const page = releasesSchema.parse(
+        const page = fredReleaseDatesResponseSchema.parse(
           await http.json(
             url("releases/dates", {
               realtime_start: from,

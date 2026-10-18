@@ -14,8 +14,8 @@ async function main() {
   const db = await createSupabaseConnection();
   const repository = createMacroRepository(db);
   const resolve = createProviderRegistry({
-    worldbank: createWorldBankProvider(),
-    ...(ENV.FRED_API_KEY ? { fred: createFredProvider(ENV.FRED_API_KEY) } : {}),
+    worldbank: createWorldBankProvider(ENV.WORLD_BANK_API_URL),
+    ...(ENV.FRED_API_KEY ? { fred: createFredProvider(ENV.FRED_API_KEY, ENV.FRED_API_URL) } : {}),
   });
   const tick = createIngestWorker(repository, createIngestSeries(repository, resolve));
   const features = createFeatureWorker(repository, createComputeFeatures(repository));

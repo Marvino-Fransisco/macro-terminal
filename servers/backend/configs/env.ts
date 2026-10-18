@@ -5,6 +5,8 @@ dotenv.config({ quiet: true });
 
 const envSchema = z.object({
   DATABASE_URL: z.string({ error: "DATABASE_URL is required" }).min(1, "DATABASE_URL cannot be empty"),
+  FRED_API_URL: z.url({ error: "FRED_API_URL must be a valid URL" }),
+  WORLD_BANK_API_URL: z.url({ error: "WORLD_BANK_API_URL must be a valid URL" }),
   FRED_API_KEY: z.string().optional(),
   BLS_API_KEY: z.string().optional(),
   BEA_USER_ID: z.string().optional(),

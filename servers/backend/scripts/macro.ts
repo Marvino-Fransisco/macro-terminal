@@ -26,8 +26,8 @@ function requireIndicatorId(indicatorIds: Map<string, string>, code: string) {
 
 async function main() {
   const [command, ...args] = process.argv.slice(2);
-  const worldbank = createWorldBankProvider();
-  const fred = ENV.FRED_API_KEY ? createFredProvider(ENV.FRED_API_KEY) : undefined;
+  const worldbank = createWorldBankProvider(ENV.WORLD_BANK_API_URL);
+  const fred = ENV.FRED_API_KEY ? createFredProvider(ENV.FRED_API_KEY, ENV.FRED_API_URL) : undefined;
   if (command === "validate-fred") {
     if (!fred) throw new Error("FRED_API_KEY is required");
     const results = [];

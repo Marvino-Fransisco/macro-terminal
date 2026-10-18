@@ -4,6 +4,9 @@ import { createFredProvider } from "./fred/fred.provider";
 import { createPoint } from "@/modules/macro";
 import { createWorldBankProvider } from "./worldbank/worldbank.provider";
 
+const FRED_URL = "https://api.stlouisfed.org/fred";
+const WORLD_BANK_URL = "https://api.worldbank.org/v2";
+
 function fakeHttp(responses: unknown[]) {
   const urls: URL[] = [];
   return { urls, async json(url: URL) { urls.push(url); const next = responses.shift(); if (next === undefined) throw new Error("Unexpected request"); return next; } };
@@ -11,7 +14,7 @@ function fakeHttp(responses: unknown[]) {
 
 test("FRED paginates and skips missing markers", async () => {
   const http = fakeHttp([{ count: 3, observations: [{ date: "2024-01-01", value: "1.5" }, { date: "2024-02-01", value: "." }] }, { count: 3, observations: [{ date: "2024-03-01", value: "2" }] }]);
-  const result = await createFredProvider("test", http).fetchObservations({ providerSeriesId: "TEST" });
+  const result = await createFredProvider("test", FRED_URL, http).fetchObservations({ providerSeriesId: "TEST" });
   expect(result).toEqual([createPoint("2024-01-01", 1.5), createPoint("2024-03-01", 2)]);
   expect(http.urls[1]!.searchParams.get("offset")).toBe("2");
 });
@@ -24,7 +27,7 @@ test("provider rejects malformed/non-finite numbers", () => {
 
 test("World Bank paginates all-country observations, filters country and caches indicator", async () => {
   const http = fakeHttp([[{ pages: 2 }, [{ countryiso3code: "USA", date: "2023", value: 2 }]], [{ pages: 2 }, [{ countryiso3code: "DEU", date: "2023", value: 1 }, { countryiso3code: "USA", date: "2022", value: null }]]]);
-  const provider = createWorldBankProvider(http);
+  const provider = createWorldBankProvider(WORLD_BANK_URL, http);
   expect(await provider.fetchObservations({ providerSeriesId: "USA:TEST" })).toEqual([createPoint("2023-01-01", 2)]);
   expect(await provider.fetchObservations({ providerSeriesId: "DEU:TEST" })).toEqual([createPoint("2023-01-01", 1)]);
   expect(http.urls.length).toBe(2);
@@ -32,7 +35,7 @@ test("World Bank paginates all-country observations, filters country and caches 
 
 test("World Bank distinguishes aggregates", async () => {
   const http = fakeHttp([[{ pages: 1 }, [{ id: "USA", iso2Code: "US", name: "United States", region: { id: "NAC", value: "North America" } }, { id: "WLD", iso2Code: "1W", name: "World", region: { id: "NA", value: "Aggregates" } }]]]);
-  expect((await createWorldBankProvider(http).fetchCountries()).map((c) => c.isAggregate)).toEqual([false, true]);
+  expect((await createWorldBankProvider(WORLD_BANK_URL, http).fetchCountries()).map((c) => c.isAggregate)).toEqual([false, true]);
 });
 
 test("HTTP retries 429 with Retry-After and redacts query secrets on errors", async () => {
@@ -50,7 +53,7 @@ test("HTTP retries 429 with Retry-After and redacts query secrets on errors", as
 
 test("FRED metadata discovers release association through the documented endpoint", async () => {
   const http = fakeHttp([{ seriess: [{ id: "TEST", title: "Test", units: "Index", frequency_short: "M", seasonal_adjustment_short: "SA", last_updated: "2024-01-01T12:00:00Z", notes: "Copyright owner" }] }, { releases: [{ id: 10 }] }]);
-  const metadata = await createFredProvider("test", http).fetchSeriesMetadata("TEST");
+  const metadata = await createFredProvider("test", FRED_URL, http).fetchSeriesMetadata("TEST");
   expect(metadata.releaseId).toBe("10");
   expect(metadata.frequency).toBe("monthly");
   expect(http.urls[1]!.pathname).toBe("/fred/series/release");
@@ -58,7 +61,7 @@ test("FRED metadata discovers release association through the documented endpoin
 
 test("FRED release dates paginate and never invent publication timestamps", async () => {
   const http = fakeHttp([{ count: 2, release_dates: [{ release_id: 1, release_name: "First", date: "2024-01-01" }] }, { count: 2, release_dates: [{ release_id: 2, release_name: "Second", date: "2024-02-01" }] }]);
-  const provider = createFredProvider("test", http);
+  const provider = createFredProvider("test", FRED_URL, http);
   const events = await provider.fetchReleaseEvents!("2024-01-01", "2024-02-01");
   expect(events.map((event) => event.releaseId)).toEqual(["1", "2"]);
   expect(events.every((event) => event.publishedAt === null)).toBe(true);
@@ -67,5 +70,5 @@ test("FRED release dates paginate and never invent publication timestamps", asyn
 
 test("FRED rejects truncated pagination instead of committing partial history", async () => {
   const http = fakeHttp([{ count: 1, observations: [] }]);
-  await expect(createFredProvider("test", http).fetchObservations({ providerSeriesId: "TEST" })).rejects.toThrow("pagination stopped");
+  await expect(createFredProvider("test", FRED_URL, http).fetchObservations({ providerSeriesId: "TEST" })).rejects.toThrow("pagination stopped");
 });

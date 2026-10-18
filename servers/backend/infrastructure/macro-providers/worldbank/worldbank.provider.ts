@@ -1,4 +1,3 @@
-import z from "zod";
 import type { MacroDataProvider } from "@/modules/macro/ports/macro-data-provider.port";
 import type { CountryInput } from "@/modules/macro/domain/entities/country.entity";
 import { createCountryIso3 } from "@/modules/shared/domain/value-objects/country-iso3.vo";
@@ -13,30 +12,13 @@ import {
   parseProviderNumber,
   type ProviderHttpClient,
 } from "../http-client";
-
-const envelopeSchema = z.tuple([
-  z.object({ pages: z.number().int().nonnegative() }),
-  z.array(z.unknown()).nullable(),
-]);
-const countrySchema = z.object({
-  id: z.string().regex(/^[A-Z]{3}$/),
-  iso2Code: z.string(),
-  name: z.string(),
-  region: z.object({ id: z.string(), value: z.string() }),
-});
-const indicatorSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  unit: z.string(),
-  sourceNote: z.string().optional(),
-});
-const observationSchema = z.object({
-  countryiso3code: z.string(),
-  date: z.string(),
-  value: z.union([z.number(), z.null()]),
-});
+import { worldBankCountryResponseSchema } from "./dtos/responses/worldbank-country.response";
+import { worldBankEnvelopeResponseSchema } from "./dtos/responses/worldbank-envelope.response";
+import { worldBankIndicatorResponseSchema } from "./dtos/responses/worldbank-indicator.response";
+import { worldBankObservationResponseSchema, type WorldBankObservationResponse } from "./dtos/responses/worldbank-observation.response";
 
 export function createWorldBankProvider(
+  baseUrl: string,
   http: ProviderHttpClient = createProviderHttpClient(),
 ): MacroDataProvider & { fetchCountries(): Promise<CountryInput[]> } {
   async function pages(
@@ -50,7 +32,7 @@ export function createWorldBankProvider(
     while (page <= totalPages) {
       let url: URL;
       try {
-        url = new URL(`https://api.worldbank.org/v2/${path}`);
+        url = new URL(`${baseUrl}/${path}`);
       } catch {
         throw new Error("Invalid World Bank request path");
       }
@@ -60,7 +42,7 @@ export function createWorldBankProvider(
         ...params,
         page: String(page),
       }).toString();
-      const [meta, rows] = envelopeSchema.parse(await http.json(url));
+      const [meta, rows] = worldBankEnvelopeResponseSchema.parse(await http.json(url));
       totalPages = meta.pages;
       results.push(...(rows ?? []));
       page++;
@@ -70,13 +52,13 @@ export function createWorldBankProvider(
 
   const cache = new Map<
     string,
-    { expires: number; data: Promise<z.infer<typeof observationSchema>[]> }
+    { expires: number; data: Promise<WorldBankObservationResponse[]> }
   >();
 
   return {
     async fetchCountries() {
       return (await pages("country")).map((row) => {
-        const country = countrySchema.parse(row);
+        const country = worldBankCountryResponseSchema.parse(row);
         return {
           iso3: createCountryIso3(country.id),
           iso2: createCountryIso2(country.iso2Code),
@@ -91,7 +73,7 @@ export function createWorldBankProvider(
     async fetchSeriesMetadata(id) {
       const code = id.includes(":") ? id.split(":")[1]! : id;
       const [raw] = await pages(`indicator/${encodeURIComponent(code)}`);
-      const metadata = indicatorSchema.parse(raw);
+      const metadata = worldBankIndicatorResponseSchema.parse(raw);
       if (metadata.id !== code)
         throw new Error(`World Bank metadata missing for ${code}`);
       return {
@@ -117,7 +99,7 @@ export function createWorldBankProvider(
         const data = pages(
           `country/all/indicator/${encodeURIComponent(indicator)}`,
           { date: range },
-        ).then((rows) => rows.map((row) => observationSchema.parse(row)));
+        ).then((rows) => rows.map((row) => worldBankObservationResponseSchema.parse(row)));
         cached = { expires: Date.now() + 3600_000, data };
         cache.set(key, cached);
         void data.catch(() => cache.delete(key));
