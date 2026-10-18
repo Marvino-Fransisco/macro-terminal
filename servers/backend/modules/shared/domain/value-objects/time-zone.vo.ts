@@ -1,5 +1,5 @@
 import { InvalidTimeZoneError, TimeZoneTooLongError } from "../errors/time-zone.error";
-import { MAX_TIME_ZONE_LENGTH } from "../../constants";
+import { MAX_TIME_ZONE_LENGTH } from "../../constants/time-zone.const";
 
 export type TimeZone = string & {
   readonly __brand: "TimeZone";

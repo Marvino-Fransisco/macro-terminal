@@ -1,0 +1,2 @@
+ALTER TABLE "countries" ALTER COLUMN "name" SET DATA TYPE varchar(100);--> statement-breakpoint
+ALTER TABLE "indicators" ALTER COLUMN "name" SET DATA TYPE varchar(100);

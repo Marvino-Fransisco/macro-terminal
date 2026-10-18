@@ -4,6 +4,8 @@
 
 This backend is a TypeScript modular monolith.
 
+For macro-data setup, ingestion, HTTP routes, licensing controls and verification, see [Macro data](docs/macro.md).
+
 The main architectural goals are:
 
 1. Keep business logic independent from Elysia.

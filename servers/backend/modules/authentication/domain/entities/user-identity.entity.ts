@@ -6,3 +6,5 @@ export type UserIdentity = Entity & {
   provider: AuthProvider;
   providerUserId: string;
 }
+
+export type UserIdentityInput = Omit<UserIdentity, keyof Entity>;

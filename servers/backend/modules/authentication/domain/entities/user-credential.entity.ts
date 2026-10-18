@@ -1,13 +1,14 @@
 import { Entity } from "../../../shared";
-import { CreateUserCredentialInput } from "../types/create-user-credential.input";
 
 export type UserCredential = Entity & {
   userId: string;
   passwordHash: string;
 }
 
-export function createUserCredential(createUserCredentialInput: CreateUserCredentialInput): UserCredential {
-  const { userId, passwordHash } = createUserCredentialInput;
+export type UserCredentialInput = Omit<UserCredential, keyof Entity>;
+
+export function createUserCredential(userCredentialInput: UserCredentialInput): UserCredential {
+  const { userId, passwordHash } = userCredentialInput;
 
   return {
     userId,

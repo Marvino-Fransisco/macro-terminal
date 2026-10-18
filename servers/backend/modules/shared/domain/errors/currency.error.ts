@@ -1,4 +1,4 @@
-import { CURRENCY_LENGTH } from "../../constants";
+import { CURRENCY_LENGTH } from "../../constants/currency.const";
 
 export class UnsupportedCurrencyError extends Error {
   constructor() {

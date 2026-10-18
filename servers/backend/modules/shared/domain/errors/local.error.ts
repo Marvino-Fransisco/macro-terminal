@@ -1,4 +1,4 @@
-import { MAX_LOCALE_LENGTH } from "../../constants";
+import { MAX_LOCALE_LENGTH } from "../../constants/locale.const";
 
 export class InvalidLocaleError extends Error {
   constructor() {

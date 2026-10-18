@@ -1,0 +1,1 @@
+ALTER TABLE "series" ADD COLUMN "provider_release_id" text;

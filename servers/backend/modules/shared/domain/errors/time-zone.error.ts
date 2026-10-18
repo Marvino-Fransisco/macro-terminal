@@ -1,4 +1,4 @@
-import { MAX_TIME_ZONE_LENGTH } from "../../constants";
+import { MAX_TIME_ZONE_LENGTH } from "../../constants/time-zone.const";
 
 export class InvalidTimeZoneError extends Error {
   constructor() {

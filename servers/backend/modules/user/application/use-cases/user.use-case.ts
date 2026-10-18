@@ -1,5 +1,7 @@
-import { UserUseCase, UserRepository } from "../ports";
-import { CreateNewUserRequest, CreateNewUserResponse } from "../dtos";
+import { UserUseCase } from "../ports/user.port";
+import { UserRepository } from "../ports/user-repository.port";
+import { CreateNewUserRequest } from "../dtos/requests/create-new-user.request";
+import { CreateNewUserResponse } from "../dtos/responses/create-new-user.response";
 import { createUser } from "../../domain/entites/user.entity";
 import { DEFAULT_CURRENCY } from "@/modules/shared";
 import { EmailAlreadyTakenError } from "../errors/email.error";

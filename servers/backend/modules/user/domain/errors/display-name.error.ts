@@ -1,4 +1,4 @@
-import { MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH } from "../../constants";
+import { MAX_DISPLAY_NAME_LENGTH, MIN_DISPLAY_NAME_LENGTH } from "../../constants/display-name.const";
 
 export class InvalidDisplayNameError extends Error {
   constructor() {

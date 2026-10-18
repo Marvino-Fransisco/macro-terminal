@@ -1,4 +1,4 @@
-import { MAX_USERNAME_LENGTH, MIN_USERNAME_LENGTH } from "../../constants";
+import { MAX_USERNAME_LENGTH, MIN_USERNAME_LENGTH } from "../../constants/username.const";
 
 export class InvalidUsernameError extends Error {
   constructor() {

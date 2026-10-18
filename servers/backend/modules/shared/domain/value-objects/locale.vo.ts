@@ -1,5 +1,5 @@
 import { InvalidLocaleError, LocaleTooLongError } from "../errors/local.error";
-import { MAX_LOCALE_LENGTH } from "../../constants";
+import { MAX_LOCALE_LENGTH } from "../../constants/locale.const";
 
 export type Locale = string & {
   readonly __brand: "Locale";

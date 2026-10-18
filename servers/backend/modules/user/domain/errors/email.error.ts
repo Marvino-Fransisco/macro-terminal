@@ -1,4 +1,4 @@
-import { MAX_EMAIL_LENGTH } from "../../constants";
+import { MAX_EMAIL_LENGTH } from "../../constants/email.const";
 
 export class InvalidEmailError extends Error {
   constructor() {

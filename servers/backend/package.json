@@ -1,6 +1,11 @@
 {
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:integration": "bun test tests/macro.integration.test.ts",
+    "start": "bun bootstrap/api.ts",
+    "worker": "bun bootstrap/worker.ts",
+    "macro": "bun scripts/macro.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
@@ -8,6 +13,7 @@
     "argon2": "^0.45.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^1.0.0-rc.5-ab785fc",
+    "elysia": "^1.4.30",
     "pg": "^8.23.0",
     "postgres": "^3.4.9",
     "zod": "^4.5.4"

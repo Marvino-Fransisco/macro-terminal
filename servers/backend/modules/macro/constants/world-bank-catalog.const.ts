@@ -1,0 +1,15 @@
+export const WORLD_BANK_CATALOG = [
+  ["GDP_REAL_GROWTH", "NY.GDP.MKTP.KD.ZG", "growth", "Percent"],
+  ["GDP_NOMINAL_USD", "NY.GDP.MKTP.CD", "growth", "USD"],
+  ["GDP_PER_CAPITA_USD", "NY.GDP.PCAP.CD", "growth", "USD"],
+  ["CPI_INFLATION_ANNUAL", "FP.CPI.TOTL.ZG", "inflation", "Percent"],
+  ["UNEMPLOYMENT_RATE", "SL.UEM.TOTL.ZS", "labor", "Percent"],
+  ["CURRENT_ACCOUNT_TO_GDP", "BN.CAB.XOKA.GD.ZS", "external", "Percent of GDP"],
+  ["GOV_DEBT_TO_GDP", "GC.DOD.TOTL.GD.ZS", "fiscal", "Percent of GDP"],
+  ["TRADE_TO_GDP", "NE.TRD.GNFS.ZS", "external", "Percent of GDP"],
+  ["FX_RESERVES_USD", "FI.RES.TOTL.CD", "external", "USD"],
+  ["FX_RATE_OFFICIAL", "PA.NUS.FCRF", "external", "LCU per USD"],
+  ["LENDING_RATE", "FR.INR.LEND", "rates", "Percent"],
+  ["REAL_INTEREST_RATE", "FR.INR.RINR", "rates", "Percent"],
+  ["POPULATION", "SP.POP.TOTL", "population", "Persons"],
+] as const;

@@ -1,6 +1,9 @@
 import { CreateNewUserRequest, UserUseCase } from "@/modules/user";
-import { AuthenticationUseCase, PasswordHasher, UserCredentialRepository } from "../ports";
-import { RegisterRequest, RegisterResponse } from "../dtos";
+import { AuthenticationUseCase } from "../ports/authentication.port";
+import { PasswordHasher } from "../ports/password-hasher.port";
+import { UserCredentialRepository } from "../ports/user-credential-repository.port";
+import { RegisterRequest } from "../dtos/requests/register.request";
+import { RegisterResponse } from "../dtos/responses/register.response";
 import { createPassword, UnitOfWork } from "@/modules/shared";
 import { createUserCredential } from "../../domain/entities/user-credential.entity";
 import { ConfirmPasswordMismatchError } from "../errors/password.error";
@@ -31,13 +34,15 @@ export function createAuthenticationUseCase(
         }
 
         const createNewUserResponse = await userUseCase.createNewUser(createNewUserRequest);
-
-        const newUserCredential = createUserCredential({
+        const userCredentialInput = {
           userId: createNewUserResponse.userId,
           passwordHash: hashedPassword
-        });
 
+        }
+
+        const newUserCredential = createUserCredential(userCredentialInput);
         const createdUserCredential = await authenticationRepository.createCredential(newUserCredential);
+
         return {
           userId: createdUserCredential.userId,
           token: "",
