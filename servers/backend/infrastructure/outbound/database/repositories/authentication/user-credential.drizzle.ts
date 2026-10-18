@@ -1,5 +1,5 @@
-import { Database } from "@/infrastructure/database/connections/supabase.connection";
-import { userCredentialsTable } from "@/infrastructure/database/schemas/user-credential.schema";
+import { Database } from "@/infrastructure/outbound/database/connections/supabase.connection";
+import { userCredentialsTable } from "@/infrastructure/outbound/database/schemas/user-credential.schema";
 import { UserCredentialRepository } from "@/modules/authentication";
 import { FailedToCreateUserCredentialError } from "./errors/user-credential.error";
 import { toUserCredentialEntity } from "./mappers/user-credential.mapper";

@@ -53,6 +53,7 @@ export function createFredProvider(
       const points: Point[] = [];
       let offset = 0;
       let count = Infinity;
+
       while (offset < count) {
         const params: Record<string, string> = {
           series_id: request.providerSeriesId,
@@ -60,36 +61,46 @@ export function createFredProvider(
           offset: String(offset),
           sort_order: "asc",
         };
+
         if (request.from) params.observation_start = request.from;
         if (request.to) params.observation_end = request.to;
         if (request.firstRelease) params.output_type = "4";
+
         const page = fredObservationsResponseSchema.parse(
           await http.json(url("series/observations", params)),
         );
+
         count = page.count;
+
         if (page.observations.length === 0 && offset < count)
           throw new Error("FRED pagination stopped before count");
+
         for (const observation of page.observations) {
           const value = parseProviderNumber(observation.value);
           if (value !== undefined)
             points.push(createPoint(observation.date, value));
         }
+
         offset += page.observations.length;
       }
+
       return points;
     },
 
     async fetchSeriesMetadata(id): Promise<ProviderSeriesMetadataResponse> {
       const data = fredSeriesResponseSchema.parse(
         await http.json(url("series", { series_id: id })),
-      );
+      )
       const metadata = data.seriess[0];
+
       if (!metadata || metadata.id !== id)
         throw new Error(`FRED metadata missing for ${id}`);
+
       const updated = new Date(metadata.last_updated);
       const release = fredSeriesReleaseResponseSchema.parse(
         await http.json(url("series/release", { series_id: id })),
       ).releases[0];
+
       return {
         id,
         title: metadata.title,
@@ -113,6 +124,7 @@ export function createFredProvider(
       const events: ReleaseEventInput[] = [];
       let offset = 0;
       let count = Infinity;
+
       while (offset < count) {
         const page = fredReleaseDatesResponseSchema.parse(
           await http.json(
@@ -125,9 +137,11 @@ export function createFredProvider(
             }),
           ),
         );
+
         count = page.count;
         if (page.release_dates.length === 0 && offset < count)
           throw new Error("FRED release pagination stopped before count");
+
         for (const release of page.release_dates) {
           events.push({
             provider: "fred",
@@ -137,8 +151,10 @@ export function createFredProvider(
             publishedAt: null,
           });
         }
+
         offset += page.release_dates.length;
       }
+
       return events;
     },
   };

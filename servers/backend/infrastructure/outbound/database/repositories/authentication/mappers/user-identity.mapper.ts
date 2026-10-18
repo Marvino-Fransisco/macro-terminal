@@ -1,4 +1,4 @@
-import { SelectUserIdentitiesTable } from "@/infrastructure/database/schemas/user-identity.schema";
+import { SelectUserIdentitiesTable } from "@/infrastructure/outbound/database/schemas/user-identity.schema";
 import { UserIdentity } from "@/modules/authentication";
 
 export function toUserIdentity(row: SelectUserIdentitiesTable): UserIdentity {

@@ -31,22 +31,26 @@ export function createWorldBankProvider(
 
     while (page <= totalPages) {
       let url: URL;
+
       try {
         url = new URL(`${baseUrl}/${path}`);
       } catch {
         throw new Error("Invalid World Bank request path");
       }
+
       url.search = new URLSearchParams({
         format: "json",
         per_page: "20000",
         ...params,
         page: String(page),
       }).toString();
+
       const [meta, rows] = worldBankEnvelopeResponseSchema.parse(await http.json(url));
       totalPages = meta.pages;
       results.push(...(rows ?? []));
       page++;
     }
+
     return results;
   }
 
@@ -59,6 +63,7 @@ export function createWorldBankProvider(
     async fetchCountries() {
       return (await pages("country")).map((row) => {
         const country = worldBankCountryResponseSchema.parse(row);
+
         return {
           iso3: createCountryIso3(country.id),
           iso2: createCountryIso2(country.iso2Code),
@@ -73,9 +78,11 @@ export function createWorldBankProvider(
     async fetchSeriesMetadata(id) {
       const code = id.includes(":") ? id.split(":")[1]! : id;
       const [raw] = await pages(`indicator/${encodeURIComponent(code)}`);
+
       const metadata = worldBankIndicatorResponseSchema.parse(raw);
       if (metadata.id !== code)
         throw new Error(`World Bank metadata missing for ${code}`);
+
       return {
         id,
         title: metadata.name,
@@ -92,8 +99,10 @@ export function createWorldBankProvider(
       const [country, indicator, extra] = request.providerSeriesId.split(":");
       if (!country || !indicator || extra || !/^[A-Z]{3}$/.test(country))
         throw new Error("World Bank series id must be ISO3:indicator");
+
       const range = `${request.from?.slice(0, 4) ?? "1960"}:${request.to?.slice(0, 4) ?? new Date().getUTCFullYear()}`;
       const key = `${indicator}:${range}`;
+
       let cached = cache.get(key);
       if (!cached || cached.expires <= Date.now()) {
         const data = pages(
@@ -104,12 +113,15 @@ export function createWorldBankProvider(
         cache.set(key, cached);
         void data.catch(() => cache.delete(key));
       }
+
       const rows = await cached.data;
       const result: Point[] = [];
+
       for (const row of rows) {
         if (row.countryiso3code !== country) continue;
         if (!/^\d{4}$/.test(row.date))
           throw new Error("World Bank returned a non-annual period");
+
         const value = parseProviderNumber(row.value);
         const periodDate = `${row.date}-01-01`;
         if (
@@ -119,6 +131,7 @@ export function createWorldBankProvider(
         )
           result.push(createPoint(periodDate, value));
       }
+
       return result.sort((a, b) => a.periodDate.localeCompare(b.periodDate));
     },
   };

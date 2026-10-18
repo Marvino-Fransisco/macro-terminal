@@ -1,4 +1,4 @@
-import { SelectUserCredentialsTable } from "@/infrastructure/database/schemas/user-credential.schema";
+import { SelectUserCredentialsTable } from "@/infrastructure/outbound/database/schemas/user-credential.schema";
 import { UserCredential } from "@/modules/authentication";
 
 export function toUserCredentialEntity(row: SelectUserCredentialsTable): UserCredential {

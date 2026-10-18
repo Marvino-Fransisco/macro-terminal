@@ -1,5 +1,5 @@
-import { Database } from "@/infrastructure/database/connections/supabase.connection";
-import { usersTable } from "@/infrastructure/database/schemas/user.schema";
+import { Database } from "@/infrastructure/outbound/database/connections/supabase.connection";
+import { usersTable } from "@/infrastructure/outbound/database/schemas/user.schema";
 import { UserRepository } from "@/modules/user";
 import { eq } from "drizzle-orm";
 import { toUserEntity } from "./mappers/user.mapper";

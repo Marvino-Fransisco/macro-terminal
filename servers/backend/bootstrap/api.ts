@@ -1,9 +1,9 @@
 import { Elysia } from "elysia";
 import { ENV } from "@/configs/env";
-import { createSupabaseConnection } from "@/infrastructure/database/connections/supabase.connection";
-import { createMacroRepository } from "@/infrastructure/database/repositories/macro/macro-repository.drizzle";
+import { createSupabaseConnection } from "@/infrastructure/outbound/database/connections/supabase.connection";
+import { createMacroRepository } from "@/infrastructure/outbound/database/repositories/macro/macro-repository.drizzle";
 import { createGetMacro } from "@/modules/macro/application/use-cases/get-macro";
-import { createMacroRoutes } from "@/api/http/macro.routes";
+import { createMacroRoutes } from "@/infrastructure/inbound/http/macro.routes";
 
 async function main() {
   const db = await createSupabaseConnection();

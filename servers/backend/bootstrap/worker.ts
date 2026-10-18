@@ -1,9 +1,9 @@
 import { ENV } from "@/configs/env";
-import { createSupabaseConnection } from "@/infrastructure/database/connections/supabase.connection";
-import { createMacroRepository } from "@/infrastructure/database/repositories/macro/macro-repository.drizzle";
-import { createFredProvider } from "@/infrastructure/macro-providers/fred/fred.provider";
-import { createWorldBankProvider } from "@/infrastructure/macro-providers/worldbank/worldbank.provider";
-import { createProviderRegistry } from "@/infrastructure/macro-providers/provider-registry";
+import { createSupabaseConnection } from "@/infrastructure/outbound/database/connections/supabase.connection";
+import { createMacroRepository } from "@/infrastructure/outbound/database/repositories/macro/macro-repository.drizzle";
+import { createFredProvider } from "@/infrastructure/outbound/macro-providers/fred/fred.provider";
+import { createWorldBankProvider } from "@/infrastructure/outbound/macro-providers/worldbank/worldbank.provider";
+import { createProviderRegistry } from "@/infrastructure/outbound/macro-providers/provider-registry";
 import { createIngestSeries } from "@/modules/macro/application/use-cases/ingest-series";
 import { createIngestWorker } from "@/workers/ingest.worker";
 import { createFeatureWorker } from "@/workers/feature.worker";

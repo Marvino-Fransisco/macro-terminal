@@ -7,6 +7,7 @@ export function createProviderRegistry(providers: Partial<Record<Provider, Macro
   return (provider) => {
     const adapter = providers[provider];
     if (!adapter) throw new Error(`Provider is not configured: ${provider}`);
+
     return adapter;
   };
 }

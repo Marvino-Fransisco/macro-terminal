@@ -1,4 +1,4 @@
-import { SelectUsersTable } from "@/infrastructure/database/schemas/user.schema";
+import { SelectUsersTable } from "@/infrastructure/outbound/database/schemas/user.schema";
 import { createCurrency, createLocale, createTimeZone } from "@/modules/shared";
 import { createDisplayName, createEmail, createUsername, User } from "@/modules/user";
 
